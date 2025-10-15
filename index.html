@@ -209,8 +209,12 @@
       // typing (localStorage-based)
       const TYPING_KEY = 'notcord_typing_v1';
       const TYPING_EXPIRE_MS = 5000;
-      let typingTimeout = null;
       let isLocalTyping = false;
+      let typingStopTimeout = null;
+
+      // auto-scroll state
+      let autoScroll = true;
+      const AUTO_SCROLL_THRESHOLD = 60; // px from bottom considered "at bottom"
 
       // user settings & player id
       let username = localStorage.getItem('notcord_username') || '';
@@ -244,7 +248,7 @@
       function detectNameColorFromMsg(msg){ return msg.nameColor || msg.color || msg.name_color || null; }
 
       function renderMessage(msg, localUsername){
-        // If private message and not meant for this user, return null to skip rendering
+        // Private visibility: render only if not private OR private to local user OR authored by local user
         if(msg.privateTo && !(msg.privateTo === localUsername || (msg.username === localUsername))) return null;
 
         const container = document.createElement('div');
@@ -283,9 +287,15 @@
         return container;
       }
 
-      function scrollToBottom(){ requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight); }
+      function isAtBottom(){
+        return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - AUTO_SCROLL_THRESHOLD;
+      }
 
-      // Fetch messages (filter private messages not for current user)
+      function scrollToBottom(){
+        requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight);
+      }
+
+      // Fetch messages (filter private messages not for current user) with scroll preservation
       async function fetchMessagesFromApi(){
         if(!apiBase) return false;
         try{
@@ -298,12 +308,27 @@
             const tb = new Date(b.createdAt||b.created_at||b.timestamp||0).getTime() || (Number(b.id)||0);
             return ta - tb;
           });
+
+          // preserve scroll position if user scrolled up (not autoScroll)
+          const prevScrollTop = messagesEl.scrollTop;
+          const prevScrollHeight = messagesEl.scrollHeight;
+          const wasAtBottom = isAtBottom();
+
           messagesEl.innerHTML = '';
           for(const msg of data){
             const el = renderMessage(msg, username);
             if(el) messagesEl.appendChild(el);
           }
-          scrollToBottom();
+
+          // If user is at bottom or autoScroll is enabled, scroll to bottom; otherwise maintain relative position
+          if(wasAtBottom || autoScroll){
+            scrollToBottom();
+          } else {
+            // preserve view (approx): keep the same distance from top accounting for new height
+            const newScrollHeight = messagesEl.scrollHeight;
+            messagesEl.scrollTop = Math.max(0, newScrollHeight - prevScrollHeight + prevScrollTop);
+          }
+
           setStatus('Connected — ' + data.length + ' messages');
           return true;
         }catch(err){
@@ -316,12 +341,19 @@
       async function loadReadOnlyMessages(){
         const data = Array.isArray(READ_ONLY_MESSAGES) ? READ_ONLY_MESSAGES.slice() : [];
         data.sort((a,b)=> (new Date(a.createdAt||0).getTime()) - (new Date(b.createdAt||0).getTime()));
+        const prevScrollTop = messagesEl.scrollTop;
+        const prevScrollHeight = messagesEl.scrollHeight;
+        const wasAtBottom = isAtBottom();
+
         messagesEl.innerHTML = '';
         for(const msg of data){
           const el = renderMessage(msg, username);
           if(el) messagesEl.appendChild(el);
         }
-        scrollToBottom();
+
+        if(wasAtBottom || autoScroll) scrollToBottom();
+        else messagesEl.scrollTop = Math.max(0, messagesEl.scrollHeight - prevScrollHeight + prevScrollTop);
+
         setStatus('Announcements — ' + data.length + ' items (read-only)');
         return true;
       }
@@ -341,12 +373,11 @@
         let privateTo = null;
         let messageText = rawText.trim();
         if(messageText.toLowerCase().startsWith('/w ')){
-          // format: /w recipient message...
-          const parts = messageText.split(/\s+/);
-          if(parts.length >= 3){
-            privateTo = parts[1];
-            messageText = rawText.trim().slice(3 + parts[1].length).trim();
-            if(!messageText) { setStatus('Whisper requires text'); isSending=false; sendBtn.disabled=false; return; }
+          const match = messageText.match(/^\/w\s+(\S+)\s+([\s\S]+)$/i);
+          if(match){
+            privateTo = match[1];
+            messageText = match[2];
+            if(!messageText){ setStatus('Whisper requires text'); isSending=false; sendBtn.disabled=false; return; }
           } else {
             setStatus('Whisper format: /w name text');
             isSending=false; sendBtn.disabled=false; return;
@@ -362,10 +393,10 @@
           isPrivate: !!privateTo
         };
 
-        // optimistic render (only shown to sender immediately)
+        // optimistic render (show to sender)
         const optimisticEl = renderMessage(payload, username);
         if(optimisticEl) messagesEl.appendChild(optimisticEl);
-        scrollToBottom();
+        if(autoScroll) scrollToBottom();
 
         try{
           const res = await fetch(apiBase, {
@@ -404,7 +435,6 @@
           const data = await res.json();
           if(!Array.isArray(data)){ playersStatusEl.textContent='No players data'; playersListEl.innerHTML=''; return; }
 
-          // online first, then offline; show all players from API
           const onlineList = [];
           const offlineList = [];
           for(const p of data){
@@ -414,7 +444,7 @@
             else offlineList.push({name, raw:p});
           }
 
-          // ensure local user visible (if name set) - mark online locally
+          // ensure local user visible
           if(username){
             const existsOnline = onlineList.some(x=>x.name===username);
             const existsOffline = offlineList.some(x=>x.name===username);
@@ -488,10 +518,9 @@
         try{
           const cur = await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'GET', null);
           if(!cur) return;
-          cur.online = !!isOnline;
-          cur.name = username || cur.name;
-          if(nameColor) cur.nameColor = nameColor;
-          await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', cur);
+          const updated = { ...cur, online: !!isOnline, name: username || cur.name };
+          if(nameColor) updated.nameColor = nameColor;
+          await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', updated);
         }catch(e){ console.warn('setLocalPlayerOnlineState', e); } finally { fetchPlayers().catch(()=>{}); }
       }
 
@@ -555,11 +584,18 @@
         sendBtn.disabled = !canSend;
       }
 
-      let typingStopTimeout = null;
       function scheduleTypingStop(){
         if(typingStopTimeout) clearTimeout(typingStopTimeout);
-        typingStopTimeout = setTimeout(()=> setLocalTyping(false), 1500);
+        typingStopTimeout = setTimeout(()=> {
+          setLocalTyping(false);
+          isLocalTyping = false;
+        }, 1500);
       }
+
+      // Manage autoScroll when user scrolls up/down
+      messagesEl.addEventListener('scroll', () => {
+        autoScroll = isAtBottom();
+      });
 
       // Events
       channelsEl.addEventListener('click', (e)=>{
@@ -604,12 +640,10 @@
       nameColorInput.addEventListener('input', async (e)=>{
         nameColor = e.target.value;
         localStorage.setItem('notcord_nameColor', nameColor);
-        // update API player if exists
         if(localPlayerId){
           const cur = await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'GET', null);
           if(cur) await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', {...cur, nameColor});
         }
-        // update UI
         Array.from(document.querySelectorAll('.meta .name')).forEach(el => { if(el.textContent === username) el.style.color = nameColor; });
         fetchPlayers().catch(()=>{});
       });
@@ -631,9 +665,32 @@
         else { messageInput.disabled = false; messageInput.placeholder = 'Message (Shift+Enter for newline)'; charCountEl.style.opacity = 1; updateCharCountAndState(); }
         if(polling) clearInterval(polling);
         await fetchMessages();
-        scrollToBottom();
         if(id !== 'announcements') polling = setInterval(fetchMessages, 4000);
       }
+
+      // Visibility & focus handling: mark online when focused, offline when hidden or closed
+      document.addEventListener('visibilitychange', async () => {
+        if(!username) return;
+        if(document.hidden){
+          // Mark offline when tabbed out
+          await setLocalPlayerOnlineState(false).catch(()=>{});
+        } else {
+          // Mark online when tab focused again (and ensure player record exists)
+          await upsertLocalPlayer().catch(()=>{});
+          await setLocalPlayerOnlineState(true).catch(()=>{});
+        }
+      });
+
+      window.addEventListener('blur', async () => {
+        if(!username) return;
+        await setLocalPlayerOnlineState(false).catch(()=>{});
+      });
+
+      window.addEventListener('focus', async () => {
+        if(!username) return;
+        await upsertLocalPlayer().catch(()=>{});
+        await setLocalPlayerOnlineState(true).catch(()=>{});
+      });
 
       // Init
       async function init(){
@@ -646,6 +703,7 @@
           usernameLocked.style.display = 'flex';
           usernameDisplay.textContent = username;
           await upsertLocalPlayer();
+          await setLocalPlayerOnlineState(true);
         } else {
           usernameBox.style.display = 'flex';
           usernameLocked.style.display = 'none';
@@ -667,7 +725,7 @@
       window.addEventListener('beforeunload', ()=>{
         try{
           if(localPlayerId){
-            const payload = JSON.stringify({ ...{ name: username, online:false, nameColor }, id: localPlayerId });
+            const payload = JSON.stringify({ name: username, online:false, nameColor });
             const url = `${PLAYERS_API}/${localPlayerId}`;
             if(navigator.sendBeacon){
               navigator.sendBeacon(url, payload);
