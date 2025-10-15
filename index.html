@@ -25,16 +25,18 @@
     .app { width:100%; height:100vh; display:grid; grid-template-columns:260px 1fr 240px; overflow:hidden; }
     .sidebar{ padding:14px; display:flex; flex-direction:column; gap:12px; height:100vh; overflow:auto; background:linear-gradient(180deg,var(--theme-1),var(--theme-2)); border-right:1px solid var(--border) }
     .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px}
-    /* logo uses 3-color gradient */
+    /* logo uses theme-3 as solid color for whole logo */
     .brand .dot{
       width:18px;height:18px;border-radius:50%;
-      background:linear-gradient(135deg,var(--theme-1),var(--theme-2),var(--theme-3));
+      background:var(--theme-3);
       box-shadow:0 0 10px rgba(0,0,0,0.6);
       flex-shrink:0;
     }
     .brand .name{
-      background:linear-gradient(90deg,var(--theme-1),var(--theme-2),var(--theme-3));
-      -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800
+      color:var(--theme-3);
+      font-weight:800;
+      font-size:18px;
+      letter-spacing:0.2px;
     }
 
     .usernameBox{display:flex;gap:8px;align-items:center}
@@ -50,20 +52,22 @@
     .settings input[type="color"]{width:48px;height:32px;padding:0;border:none;background:transparent;cursor:pointer}
     .settings .toggleBtn{padding:8px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer}
 
-    .chatPanel{display:flex;flex-direction:column;min-height:0}
-    .header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+    .chatPanel{display:flex;flex-direction:column;min-height:0; background:var(--theme-3);} /* whole chat area uses theme-3 */
+    .header{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px}
     .header h2{margin:0;font-size:18px}
     .header .spacer{flex:1}
     .header .right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
     .status{color:var(--muted);font-size:13px}
     .typing{color:var(--muted);font-size:12px;height:18px}
 
+    /* messages area kept visually distinct but inside theme-3 chatPanel */
     .messages{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;min-height:0}
     .message{display:flex;gap:12px;align-items:flex-start;max-width:85%}
     .message.me{margin-left:auto;justify-content:flex-end}
-    /* chat bubble now has a left accent using theme-3 */
-    .bubble{background:var(--msg-bg);padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;color:#dbe8ff;word-break:break-word;box-shadow:0 6px 18px rgba(2,6,23,0.6);border-left:4px solid var(--theme-3)}
-    .message.me .bubble{background:var(--me-bg);border-left-color:var(--accent)}
+    /* now bubbles use theme-3 for non-me messages (whole chat box color) */
+    .bubble{background:var(--theme-3);padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;color:var(--text);word-break:break-word;box-shadow:0 6px 18px rgba(2,6,23,0.6);border-left:4px solid rgba(255,255,255,0.04)}
+    /* keep 'me' messages distinct */
+    .message.me .bubble{background:var(--me-bg);border-left-color:var(--accent);color:var(--text)}
     .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
     .meta .name{font-weight:700}
     .meta .time{font-size:12px;color:var(--muted)}
@@ -137,7 +141,7 @@
           </div>
         </label>
 
-        <label>Theme color 3 (chat boxes & logo)
+        <label>Theme color 3 (chat & logo)
           <div style="display:flex;gap:8px;align-items:center">
             <input type="color" id="themeColor3" title="Theme color 3" />
             <div style="flex:1"></div>
@@ -336,7 +340,6 @@
           const data = await res.json();
           if(!Array.isArray(data)) return;
           if(data.length <= MAX_MESSAGES) return;
-          // sort oldest first
           data.sort((a,b)=>{
             const ta = new Date(a.createdAt||a.created_at||a.timestamp||0).getTime() || (Number(a.id)||0);
             const tb = new Date(b.createdAt||b.created_at||b.timestamp||0).getTime() || (Number(b.id)||0);
@@ -384,7 +387,6 @@
 
           setStatus('Connected — ' + data.length + ' messages');
 
-          // enforce limit in background
           if(data.length > MAX_MESSAGES) await enforceMessageLimit();
 
           return true;
@@ -426,7 +428,6 @@
         isSending = true;
         sendBtn.disabled = true;
 
-        // parse whisper syntax
         let privateTo = null;
         let messageText = rawText.trim();
         if(messageText.toLowerCase().startsWith('/w ')){
@@ -450,7 +451,6 @@
           isPrivate: !!privateTo
         };
 
-        // optimistic render (show to sender)
         const optimisticEl = renderMessage(payload, username);
         if(optimisticEl) messagesEl.appendChild(optimisticEl);
         if(autoScroll) scrollToBottom();
@@ -462,7 +462,6 @@
             body: JSON.stringify(payload)
           });
           if(!res.ok) throw new Error('Send failed: ' + res.status);
-          // ensure we don't exceed limit
           await enforceMessageLimit();
           await fetchMessages();
         }catch(err){
@@ -747,9 +746,7 @@
         if(playersPolling) clearInterval(playersPolling);
         playersPolling = setInterval(fetchPlayers, 5000);
 
-        // run message limit enforcement periodically as extra safety
         setInterval(() => { if(apiBase) enforceMessageLimit(); }, 60 * 1000);
-
         setStatus('Connected (polling every 4s)');
         setInterval(cleanupTypingMap, 2000);
         updateTypingUI();
