@@ -8,7 +8,7 @@
     :root{
       --theme-1: #071226;
       --theme-2: #07101a;
-      --theme-3: #0b2233; /* theme3 used for logo, chat box and bubbles */
+      --theme-3: #0b2233; /* used for all chat bubbles and logo */
       --muted: #9aa4b2;
       --accent: #5865f2;
       --msg-bg: #111827;
@@ -25,7 +25,7 @@
     .app { width:100%; height:100vh; display:grid; grid-template-columns:260px 1fr 240px; gap:0; overflow:hidden; }
     .sidebar{ padding:14px; display:flex; flex-direction:column; gap:12px; height:100vh; overflow:auto; background:linear-gradient(180deg,var(--theme-1),var(--theme-2)); border-right:1px solid var(--border) }
 
-    /* Logo: whole logo in theme-3 (not background) */
+    /* Logo: whole logo in theme-3 */
     .brand{display:flex;gap:10px;align-items:center;font-weight:700;font-size:18px}
     .brand .dot{width:18px;height:18px;border-radius:50%;background:var(--theme-3);box-shadow:0 6px 20px rgba(11,34,51,0.35)}
     .brand .name{color:var(--theme-3);font-weight:800;font-size:18px}
@@ -45,47 +45,40 @@
     .settings input[type="color"]{width:48px;height:32px;padding:0;border:none;background:transparent;cursor:pointer}
     .settings .toggleBtn{padding:8px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer}
 
-    /* Chat column - keep page background unchanged; chat "box" uses theme-3 */
-    .chatPanel{display:flex;flex-direction:column;min-height:0;padding:12px}
-    .chatBox{
-      background:var(--theme-3);
-      border-radius:12px;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      overflow:hidden;
-      box-shadow: 0 6px 28px rgba(2,6,23,0.6);
-      border:1px solid rgba(255,255,255,0.03);
-    }
+    /* Chat area: restored to theme1/theme2 styling (like original) */
+    .chatPanel{display:flex;flex-direction:column;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);position:relative;min-height:0}
+    .chatBox{display:flex;flex-direction:column;height:100%;min-height:0} /* container inside chatPanel; transparent */
 
-    .header{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;gap:12px;background:transparent}
-    .header h2{margin:0;font-size:18px;color:var(--text)}
+    .header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:transparent}
+    .header h2{margin:0;font-size:18px}
     .header .spacer{flex:1}
     .header .right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
     .status{color:var(--muted);font-size:13px}
     .typing{color:var(--muted);font-size:12px;height:18px}
 
-    /* messages area (inside chatBox) */
+    /* messages area (transparent panel) */
     .messages{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;min-height:0;background:transparent}
     .message{display:flex;gap:12px;align-items:flex-start;max-width:85%}
     .message.me{margin-left:auto;justify-content:flex-end}
-    /* chat bubbles: use theme-3 for normal bubbles; me messages remain distinct */
+    /* Both other and my chat bubbles use theme-3 as requested */
     .bubble{
-      background:var(--theme-3); /* user's request: bubbles in theme-3 */
+      background:var(--theme-3);
       color:var(--text);
       padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;word-break:break-word;
       border-left:4px solid rgba(255,255,255,0.03);
-      box-shadow: 0 6px 18px rgba(2,6,23,0.5);
+      box-shadow:0 6px 18px rgba(2,6,23,0.6);
     }
-    .message.me .bubble{background:var(--me-bg);border-left-color:var(--accent);color:var(--text)}
+    /* to give slight differentiation for messages from me, keep subtle border accent */
+    .message.me .bubble{ border-left-color: var(--accent); }
+
     .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
     .meta .name{font-weight:700}
     .meta .time{font-size:12px;color:var(--muted)}
     .text{white-space:pre-wrap;color:inherit;font-size:15px;word-break:break-word;overflow-wrap:break-word}
     .privateTag{font-size:12px;color:#ffd980;margin-left:8px}
 
-    .inputArea{padding:12px;border-top:1px solid rgba(255,255,255,0.04);display:flex;gap:8px;align-items:flex-end;background:transparent}
-    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);outline:none}
+    .inputArea{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid var(--border);color:inherit;outline:none}
     .controls{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:120px}
     .charCount{font-size:12px;color:var(--muted)}
     .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
@@ -151,7 +144,7 @@
           </div>
         </label>
 
-        <label>Theme color 3 (logo, chat box & bubbles)
+        <label>Theme color 3 (chat bubbles & logo)
           <div style="display:flex;gap:8px;align-items:center">
             <input type="color" id="themeColor3" title="Theme color 3" />
             <div style="flex:1"></div>
@@ -263,11 +256,10 @@
       let accentColor = localStorage.getItem('notcord_accent') || themeColor1;
       let localPlayerId = localStorage.getItem('notcord_playerId') || null;
 
-      // heartbeat config: update lastSeen frequently while active
+      // heartbeat & offline detection
       const HEARTBEAT_MS = 5000;
-      const PLAYER_OFFLINE_THRESHOLD_MS = 15000; // if lastSeen older than this, treat offline
+      const PLAYER_OFFLINE_THRESHOLD_MS = 15000;
 
-      // apply theme values
       function applyTheme(){
         document.documentElement.style.setProperty('--theme-1', themeColor1);
         document.documentElement.style.setProperty('--theme-2', themeColor2);
@@ -287,7 +279,7 @@
         try{ const d = new Date(iso); if(isNaN(d)) return ''; return d.toLocaleString([], { hour: '2-digit', minute: '2-digit' }); }catch(e){return ''}
       }
 
-      // message rendering (private visibility enforced)
+      // message rendering
       function detectNameColorFromMsg(msg){ return msg.nameColor || msg.color || msg.name_color || null; }
       function renderMessage(msg, localUser){
         if(msg.privateTo && !(msg.privateTo === localUser || (msg.username === localUser))) return null;
@@ -320,7 +312,6 @@
       function isAtBottom(){ return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - AUTO_SCROLL_THRESHOLD; }
       function scrollToBottom(){ requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight); }
 
-      // safe fetch wrapper
       async function safeFetch(url, method='GET', body=null){
         try{
           const opts = { method, headers:{} };
@@ -357,7 +348,7 @@
         }catch(e){ console.warn('enforceMessageLimit failed', e); }
       }
 
-      // fetch messages with scroll preservation
+      // fetch messages preserving scroll
       async function fetchMessagesFromApi(){
         if(!apiBase) return false;
         try{
@@ -396,7 +387,6 @@
         }
       }
 
-      // load read-only announcements
       const READ_ONLY_MESSAGES = [
         { username: 'Admin', message: 'Welcome to notcord — check pinned notes here.', createdAt: new Date().toISOString(), nameColor: '#ff7a18' },
         { username: 'Team',  message: 'Server maintenance scheduled: Sunday 02:00 UTC.', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(), nameColor: '#18a0ff' }
@@ -420,7 +410,7 @@
 
       async function fetchMessages(){ if(activeChannel === 'announcements') return loadReadOnlyMessages(); return fetchMessagesFromApi(); }
 
-      // posting (supports /w whisper)
+      // posting with /w whisper support
       async function postMessage(rawText){
         if(!rawText || !rawText.trim()) return;
         if(!username){ setStatus('Set username first'); return; }
@@ -445,7 +435,6 @@
           isPrivate: !!privateTo
         };
 
-        // optimistic render for sender
         const optimisticEl = renderMessage(payload, username);
         if(optimisticEl) messagesEl.appendChild(optimisticEl);
         if(autoScroll) scrollToBottom();
@@ -469,10 +458,9 @@
         }
       }
 
-      // players handling: online detection via lastSeen or online flag
+      // players & online detection via lastSeen
       function normalizePlayerName(p){ return p.name || p.username || p.nick || p.displayName || (p.id?String(p.id):String(p)); }
       function detectPlayerOnline(p){
-        // prefer lastSeen recency
         try{
           if(p.lastSeen){
             const last = Date.parse(p.lastSeen);
@@ -548,7 +536,7 @@
         }
       }
 
-      // upsert local player and set lastSeen online=true
+      // upsert local player (sets lastSeen)
       async function upsertLocalPlayer(){
         if(!username) return;
         try{
@@ -569,7 +557,6 @@
         }catch(e){ console.warn('upsertLocalPlayer error', e); } finally { fetchPlayers().catch(()=>{}); }
       }
 
-      // set local player's online state and lastSeen (best-effort)
       async function setLocalPlayerOnlineState(isOnline){
         if(!localPlayerId) return;
         try{
@@ -581,7 +568,7 @@
         }catch(e){ console.warn('setLocalPlayerOnlineState', e); } finally { fetchPlayers().catch(()=>{}); }
       }
 
-      // heartbeat: update lastSeen periodically while focused
+      // heartbeat: update lastSeen while active
       function startHeartbeat(){
         stopHeartbeat();
         if(!username || !localPlayerId) return;
@@ -645,7 +632,7 @@
         typingStopTimeout = setTimeout(()=> { setLocalTyping(false); isLocalTyping = false; }, 1500);
       }
 
-      // scroll handling: preserve manual scroll
+      // scroll handling
       messagesEl.addEventListener('scroll', () => { autoScroll = isAtBottom(); });
 
       // events
@@ -724,13 +711,11 @@
         if(id !== 'announcements') polling = setInterval(fetchMessages, 4000);
       }
 
-      // visibility & focus handling - start/stop heartbeat and mark offline on hide
+      // visibility & focus handling
       document.addEventListener('visibilitychange', async () => {
         if(!username) return;
         if(document.hidden){
-          // mark offline and stop heartbeat
           try{
-            // best-effort via sendBeacon
             if(localPlayerId && navigator.sendBeacon){
               const url = `${PLAYERS_API}/${localPlayerId}`;
               const payload = JSON.stringify({ online:false, lastSeen: new Date().toISOString(), name: username, nameColor });
@@ -750,11 +735,10 @@
       window.addEventListener('blur', async () => { if(!username) return; try{ await setLocalPlayerOnlineState(false); }catch(e){} stopHeartbeat(); });
       window.addEventListener('focus', async () => { if(!username) return; await upsertLocalPlayer(); startHeartbeat(); });
 
-      // initialization
+      // init
       async function init(){
         applyTheme();
         initializeAppearanceInputs();
-
         localPlayerId = localStorage.getItem('notcord_playerId') || null;
 
         if(username){
@@ -773,9 +757,7 @@
         if(playersPolling) clearInterval(playersPolling);
         playersPolling = setInterval(fetchPlayers, 5000);
 
-        // message limit enforcement periodic
         setInterval(() => { if(apiBase) enforceMessageLimit(); }, 60 * 1000);
-
         setStatus('Connected (polling every 4s)');
         setInterval(cleanupTypingMap, 2000);
         updateTypingUI();
@@ -783,7 +765,7 @@
       }
       init();
 
-      // Before unload: mark offline via sendBeacon first; fallback to async fetch
+      // beforeunload: mark offline & clear typing
       window.addEventListener('beforeunload', ()=>{
         try{
           if(localPlayerId){
@@ -793,12 +775,10 @@
               const blob = new Blob([payload], { type: 'application/json' });
               navigator.sendBeacon(url, blob);
             } else {
-              // best-effort async update
               fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: payload }).catch(()=>{});
             }
           }
         }catch(e){}
-        // remove typing entry
         try{
           const map = JSON.parse(localStorage.getItem(TYPING_KEY)||'{}');
           if(map[activeChannel] && map[activeChannel][username]) { delete map[activeChannel][username]; localStorage.setItem(TYPING_KEY, JSON.stringify(map)); }
