@@ -6,245 +6,241 @@
   <title>notcord</title>
   <style>
     :root{
-      --bg:#0f1720;
-      --panel:#0b1220;
-      --muted:#9aa4b2;
-      --accent:#5865f2;
-      --msg-bg:#111827;
-      --me-bg:#2b3440;
+      --bg-0: #071226;
+      --bg-1: #07101a;
+      --panel: #0b1220;
+      --muted: #9aa4b2;
+      --accent: #5865f2;
+      --msg-bg: #111827;
+      --me-bg: #2b3440;
       --border: rgba(255,255,255,0.06);
+      --text: #e6eef6;
     }
+    [data-theme="light"]{
+      --bg-0: #f3f7fb;
+      --bg-1: #eef4fb;
+      --panel: #ffffff;
+      --muted: #556270;
+      --msg-bg: #f4f7fb;
+      --me-bg: #e8eefc;
+      --border: rgba(0,0,0,0.06);
+      --text: #0b1220;
+    }
+
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef6;background:linear-gradient(180deg,#071226 0%, #07101a 100%);}
-    /* Fullscreen app */
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;color:var(--text);background:linear-gradient(180deg,var(--bg-0) 0%, var(--bg-1) 100%);}
     .app {
+      width:100%;
       height:100vh;
-      width:100vw;
-      display:flex;
-      flex-direction:column;
-      border-top:1px solid var(--border);
-      border-bottom:1px solid var(--border);
+      display:grid;
+      grid-template-columns:260px 1fr;
+      gap:0;
       overflow:hidden;
     }
 
-    /* Header */
+    /* Sidebar */
+    .sidebar{
+      background:var(--panel);
+      border-right:1px solid var(--border);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px}
+    .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(88,101,242,0.22)}
+    .usernameBox{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .usernameBox input{
+      flex:1;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:inherit;outline:none;
+    }
+    .usernameBox button{
+      padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;
+    }
+    .usernameLocked{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);font-weight:600}
+
+    .channels{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+    .channel{
+      padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer;border:1px solid transparent;
+      display:flex;justify-content:space-between;align-items:center;
+    }
+    .channel:hover{background:rgba(255,255,255,0.01)}
+    .channel.active{background:linear-gradient(90deg, rgba(88,101,242,0.12), rgba(88,101,242,0.02));color:var(--text);border-color:rgba(88,101,242,0.12)}
+
+    .settings{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px solid var(--border)}
+    .settings label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+    .settings input[type="color"]{width:48px;height:32px;padding:0;border:none;background:transparent;cursor:pointer}
+    .settings .toggleBtn{padding:8px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer}
+
+    /* Chat area */
+    .chatPanel{display:flex;flex-direction:column;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);position:relative}
     .header{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:12px 18px;
-      border-bottom:1px solid var(--border);
-      background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+      padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;
     }
-    .brand{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      font-weight:700;
-      color:var(--accent);
-      font-size:18px;
-    }
-    .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(88,101,242,0.6);}
-
-    .header .right{
-      margin-left:auto;
-      display:flex;
-      gap:12px;
-      align-items:center;
-      color:var(--muted);
-      font-size:14px;
-    }
-    .usernameDisplay{
-      padding:6px 10px;
-      border-radius:8px;
-      background:rgba(255,255,255,0.02);
-      border:1px solid var(--border);
-      color:#e6eef6;
-      font-weight:600;
-    }
-
-    /* main area */
+    .header h2{margin:0;font-size:18px}
+    .header .spacer{flex:1}
     .messages{
-      flex:1;
-      overflow:auto;
-      padding:20px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      scroll-behavior:smooth;
-      background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+      flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;
     }
-
-    .message{
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
-      max-width:80%;
-      margin-left:0;
-    }
-    .message.me{margin-left:auto; justify-content:flex-end;}
-    .bubble{
-      background:var(--msg-bg);
-      padding:10px 12px;
-      border-radius:12px;
-      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      word-wrap:break-word;
-      color:#dbe8ff;
-      font-size:15px;
-    }
-    .message.me .bubble{background:var(--me-bg);}
-
-    .meta{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      font-size:13px;
-      color:var(--muted);
-    }
-    .meta .name{color:#e6eef6;font-weight:600}
+    .message{display:flex;gap:12px;align-items:flex-start;max-width:85%;}
+    .message.me{margin-left:auto;justify-content:flex-end;}
+    .bubble{background:var(--msg-bg);padding:10px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);display:flex;flex-direction:column;gap:6px;color:#dbe8ff}
+    .message.me .bubble{background:var(--me-bg)}
+    .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+    .meta .name{font-weight:700}
     .meta .time{font-size:12px;color:var(--muted)}
+    .text{white-space:pre-wrap;color:inherit;font-size:15px}
 
-    /* input */
-    .inputArea{
-      padding:12px;
-      border-top:1px solid var(--border);
-      display:flex;
-      gap:8px;
-      align-items:flex-end;
-      background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
-    }
-    .inputArea textarea{
-      flex:1;
-      min-height:44px;
-      max-height:140px;
-      resize:none;
-      padding:10px;
-      border-radius:10px;
-      background:transparent;
-      border:1px solid var(--border);
-      color:inherit;
-      outline:none;
-      font-family:inherit;
-    }
-    .sendBtn{
-      background:var(--accent);
-      border:none;
-      color:white;
-      padding:10px 14px;
-      border-radius:10px;
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      font-weight:600;
-    }
+    .inputArea{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid var(--border);color:inherit;outline:none}
+    .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
     .sendBtn:disabled{opacity:0.6;cursor:default}
 
-    /* small adjustments */
-    @media (max-width:600px){
-      .header{padding:10px}
-      .brand{font-size:16px}
+    @media (max-width:860px){
+      .app{grid-template-columns:200px 1fr}
+      .sidebar{padding:10px}
     }
-
-    /* username setup bar (top of messages if name not set) */
-    .nameSetup{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      padding:10px;
-      background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
-      border-bottom:1px solid var(--border);
+    @media (max-width:720px){
+      .app{grid-template-columns:1fr}
+      .sidebar{display:none}
     }
-    .nameSetup input{
-      padding:8px 10px;
-      border-radius:8px;
-      background:transparent;
-      border:1px solid var(--border);
-      color:inherit;
-      outline:none;
-      min-width:180px;
-    }
-    .nameSetup button{
-      padding:8px 12px;
-      border-radius:8px;
-      background:var(--accent);
-      color:white;
-      border:none;
-      cursor:pointer;
-      font-weight:600;
-    }
-    .status{padding:8px 14px;color:var(--muted);font-size:13px}
   </style>
 </head>
 <body>
-  <div class="app" id="app">
-    <div class="header">
-      <div class="brand"><div class="dot" aria-hidden></div>notcord</div>
-      <div class="right">
-        <div id="status" class="status">Connecting...</div>
-        <div id="usernameDisplay" class="usernameDisplay" style="display:none"></div>
+  <div class="app" id="app" data-theme="dark">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="dot"></div>notcord</div>
+
+      <div id="usernameSection">
+        <!-- shown when username not set -->
+        <div class="usernameBox" id="usernameBox">
+          <input type="text" id="usernameInput" placeholder="Choose username (once)" maxlength="40" />
+          <button id="setNameBtn">Set</button>
+        </div>
+        <!-- shown when username locked -->
+        <div class="usernameLocked" id="usernameLocked" style="display:none">
+          <div id="usernameDisplay"></div>
+        </div>
       </div>
-    </div>
 
-    <!-- If username not set, show setup bar -->
-    <div id="nameSetup" class="nameSetup" style="display:none">
-      <input type="text" id="username" placeholder="Set your username (once)" maxlength="40" />
-      <button id="saveName">Set name</button>
-      <div style="flex:1"></div>
-      <div style="color:var(--muted);font-size:13px">Name is permanent for this browser (clear storage to change)</div>
-    </div>
+      <div style="height:6px"></div>
 
-    <div class="messages" id="messages" role="log" aria-atomic="false"></div>
+      <div class="channels" id="channels">
+        <div class="channel active" data-id="general" role="button"># general</div>
+        <div class="channel" data-id="school" role="button"># school</div>
+        <div class="channel" data-id="games" role="button"># games</div>
+      </div>
 
-    <div class="inputArea">
-      <textarea id="messageInput" placeholder="Message #general (Shift+Enter for newline)"></textarea>
-      <button class="sendBtn" id="sendBtn">Send</button>
-    </div>
+      <div class="settings" aria-label="Appearance settings">
+        <label>
+          Your name color
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" id="nameColor" title="Name color" />
+            <div style="flex:1"></div>
+            <button id="resetNameColor" class="toggleBtn">Reset</button>
+          </div>
+        </label>
+
+        <label>
+          Accent color
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" id="accentColor" title="Accent color" />
+            <div style="flex:1"></div>
+            <button id="resetAccent" class="toggleBtn">Reset</button>
+          </div>
+        </label>
+
+        <label>
+          Theme
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="themeToggle" class="toggleBtn">Toggle light/dark</button>
+            <div style="flex:1"></div>
+            <button id="resetTheme" class="toggleBtn">Reset</button>
+          </div>
+        </label>
+
+        <div style="font-size:12px;color:var(--muted);padding-top:6px">Username and appearance are saved in this browser.</div>
+      </div>
+    </aside>
+
+    <section class="chatPanel">
+      <div class="header">
+        <h2 id="channelTitle"># general</h2>
+        <div class="spacer"></div>
+        <div id="status" style="color:var(--muted);font-size:13px">Connecting...</div>
+      </div>
+
+      <div class="messages" id="messages" role="log" aria-atomic="false"></div>
+
+      <div class="inputArea">
+        <textarea id="messageInput" placeholder="Message (Shift+Enter for newline)"></textarea>
+        <button id="sendBtn" class="sendBtn">Send</button>
+      </div>
+    </section>
   </div>
 
   <script>
     (function(){
-      const API_BASE = 'https://68e839b2f2707e6128ca35e1.mockapi.io/chat';
+      // Channel -> API mapping
+      const CHANNELS = {
+        general: 'https://68e839b2f2707e6128ca35e1.mockapi.io/chat',
+        school:  'https://68eeed86b06cc802829ba196.mockapi.io/schoolchat',
+        games:   'https://68eeed86b06cc802829ba196.mockapi.io/gameschat'
+      };
+
       // DOM
+      const appEl = document.getElementById('app');
+      const channelsEl = document.getElementById('channels');
+      const channelTitleEl = document.getElementById('channelTitle');
       const messagesEl = document.getElementById('messages');
-      const usernameInput = document.getElementById('username');
-      const saveNameBtn = document.getElementById('saveName');
       const statusEl = document.getElementById('status');
-      const usernameDisplay = document.getElementById('usernameDisplay');
-      const nameSetupBar = document.getElementById('nameSetup');
       const messageInput = document.getElementById('messageInput');
       const sendBtn = document.getElementById('sendBtn');
 
+      const usernameBox = document.getElementById('usernameBox');
+      const usernameInput = document.getElementById('usernameInput');
+      const setNameBtn = document.getElementById('setNameBtn');
+      const usernameLocked = document.getElementById('usernameLocked');
+      const usernameDisplay = document.getElementById('usernameDisplay');
+
+      const nameColorInput = document.getElementById('nameColor');
+      const accentColorInput = document.getElementById('accentColor');
+      const resetNameColorBtn = document.getElementById('resetNameColor');
+      const resetAccentBtn = document.getElementById('resetAccent');
+      const themeToggleBtn = document.getElementById('themeToggle');
+      const resetThemeBtn = document.getElementById('resetTheme');
+
       // state
-      let username = localStorage.getItem('notcord_username') || '';
+      let activeChannel = localStorage.getItem('notcord_channel') || 'general';
+      let apiBase = CHANNELS[activeChannel];
       let polling = null;
       let isSending = false;
 
-      // utils
-      function generateGuest(){
-        return 'Guest' + Math.floor(Math.random()*9000 + 1000);
-      }
-      function sanitizeText(str){
-        return String(str || '');
-      }
-      function formatTime(iso){
-        try{
-          const d = new Date(iso);
-          if(isNaN(d)) return '';
-          return d.toLocaleString([], { hour: '2-digit', minute: '2-digit' });
-        }catch(e){ return '';}
-      }
-      function findMessageText(msg){
-        return msg.message || msg.text || msg.content || msg.body || '';
-      }
-      function findMessageAuthor(msg){
-        return msg.username || msg.name || msg.author || 'Unknown';
+      // user settings
+      let username = localStorage.getItem('notcord_username') || '';
+      let nameColor = localStorage.getItem('notcord_nameColor') || '#ffcc00';
+      let accentColor = localStorage.getItem('notcord_accent') || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#5865f2';
+      let theme = localStorage.getItem('notcord_theme') || 'dark'; // 'dark' or 'light'
+
+      // initial UI state
+      function applyTheme(){
+        if(theme === 'light') appEl.setAttribute('data-theme','light');
+        else appEl.setAttribute('data-theme','dark');
+        document.documentElement.style.setProperty('--accent', accentColor);
       }
 
-      // rendering
+      function initializeAppearanceInputs(){
+        nameColorInput.value = nameColor;
+        accentColorInput.value = accentColor;
+      }
+
+      function setStatus(txt){
+        statusEl.textContent = txt;
+      }
+
       function renderMessage(msg, isMe=false){
         const container = document.createElement('div');
         container.className = 'message' + (isMe ? ' me' : '');
@@ -256,49 +252,56 @@
         meta.className = 'meta';
         const name = document.createElement('span');
         name.className = 'name';
-        name.textContent = findMessageAuthor(msg);
+        const author = msg.username || msg.name || msg.author || 'Unknown';
+        name.textContent = author;
+        if(author === username && nameColor) name.style.color = nameColor;
 
         const time = document.createElement('span');
         time.className = 'time';
-        time.textContent = formatTime(msg.createdAt || msg.created_at || msg.timestamp || msg.time || '');
+        const created = msg.createdAt || msg.created_at || msg.timestamp || msg.time || '';
+        time.textContent = formatTime(created);
 
         meta.appendChild(name);
         meta.appendChild(time);
 
         const text = document.createElement('div');
         text.className = 'text';
-        text.textContent = findMessageText(msg);
+        text.textContent = msg.message || msg.text || msg.content || msg.body || '';
 
         bubble.appendChild(meta);
         bubble.appendChild(text);
-
         container.appendChild(bubble);
         return container;
       }
 
-      function setStatus(txt){
-        statusEl.textContent = txt;
+      function formatTime(iso){
+        try{
+          const d = new Date(iso);
+          if(isNaN(d)) return '';
+          return d.toLocaleString([], { hour: '2-digit', minute: '2-digit' });
+        }catch(e){ return ''; }
       }
 
-      // fetch messages
+      function scrollToBottom(){
+        requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight);
+      }
+
+      // Fetch messages for current channel
       async function fetchMessages(){
+        if(!apiBase) return;
         try{
-          const res = await fetch(API_BASE);
+          const res = await fetch(apiBase);
           if(!res.ok) throw new Error('Fetch failed: ' + res.status);
           const data = await res.json();
           if(!Array.isArray(data)) return;
-
-          // sort by createdAt or id
-          data.sort((a,b) => {
-            const ta = new Date(a.createdAt || a.created_at || a.timestamp || 0).getTime() || (Number(a.id) || 0);
-            const tb = new Date(b.createdAt || b.created_at || b.timestamp || 0).getTime() || (Number(b.id) || 0);
+          data.sort((a,b)=>{
+            const ta = new Date(a.createdAt||a.created_at||a.timestamp||0).getTime() || (Number(a.id)||0);
+            const tb = new Date(b.createdAt||b.created_at||b.timestamp||0).getTime() || (Number(b.id)||0);
             return ta - tb;
           });
-
-          // render
           messagesEl.innerHTML = '';
           for(const msg of data){
-            const isMe = (findMessageAuthor(msg) === username);
+            const isMe = ( (msg.username || msg.name || msg.author) === username );
             const el = renderMessage(msg, isMe);
             messagesEl.appendChild(el);
           }
@@ -310,27 +313,27 @@
         }
       }
 
-      // post message
+      // Post with optimistic UI
       async function postMessage(text){
-        if(!text || text.trim().length === 0) return;
-        if(!username) { setStatus('Set a username first'); return; }
+        if(!text || !text.trim()) return;
+        if(!username){ setStatus('Set username first'); return; }
+        if(!apiBase){ setStatus('No channel selected'); return; }
         if(isSending) return;
         isSending = true;
         sendBtn.disabled = true;
 
         const payload = {
           username: username,
-          message: text,
+          message: text.trim(),
           createdAt: new Date().toISOString()
         };
 
-        // optimistic UI
         const optimisticEl = renderMessage(payload, true);
         messagesEl.appendChild(optimisticEl);
         scrollToBottom();
 
         try{
-          const res = await fetch(API_BASE, {
+          const res = await fetch(apiBase, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(payload)
@@ -341,7 +344,6 @@
         }catch(err){
           console.error(err);
           setStatus('Failed to send message');
-          // mark failed
           const timeEl = optimisticEl.querySelector('.meta .time');
           if(timeEl) timeEl.textContent += ' (failed)';
         }finally{
@@ -350,38 +352,75 @@
         }
       }
 
-      function scrollToBottom(){
-        requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight);
+      // Channel switching
+      function setActiveChannel(id){
+        activeChannel = id;
+        apiBase = CHANNELS[id];
+        localStorage.setItem('notcord_channel', id);
+        // UI active state
+        Array.from(channelsEl.children).forEach(ch => ch.classList.toggle('active', ch.dataset.id === id));
+        channelTitleEl.textContent = '# ' + id;
+        // restart polling for new channel
+        if(polling) clearInterval(polling);
+        fetchMessages();
+        polling = setInterval(fetchMessages, 4000);
       }
 
-      // username logic: show setup if not set, otherwise lock
-      function initializeUsernameUI(){
-        if(username){
-          usernameDisplay.style.display = 'block';
-          usernameDisplay.textContent = username;
-          nameSetupBar.style.display = 'none';
-        } else {
-          nameSetupBar.style.display = 'flex';
-          usernameInput.value = '';
-        }
+      // Username logic (set once)
+      function lockUsernameUI(){
+        usernameBox.style.display = 'none';
+        usernameLocked.style.display = 'flex';
+        usernameDisplay.textContent = username;
       }
 
-      saveNameBtn.addEventListener('click', ()=>{
+      // Appearance handlers
+      function applyNameColor(c){
+        nameColor = c;
+        localStorage.setItem('notcord_nameColor', nameColor);
+        // refresh messages to show color on our name
+        Array.from(messagesEl.querySelectorAll('.meta .name')).forEach(el=>{
+          if(el.textContent === username) el.style.color = nameColor;
+        });
+      }
+
+      function applyAccentColor(c){
+        accentColor = c;
+        localStorage.setItem('notcord_accent', accentColor);
+        document.documentElement.style.setProperty('--accent', accentColor);
+      }
+
+      function toggleTheme(){
+        theme = (theme === 'dark') ? 'light' : 'dark';
+        localStorage.setItem('notcord_theme', theme);
+        applyTheme();
+      }
+
+      // Event bindings
+      // Channel click
+      channelsEl.addEventListener('click', (e)=>{
+        const ch = e.target.closest('.channel');
+        if(!ch) return;
+        setActiveChannel(ch.dataset.id);
+      });
+
+      // set username
+      setNameBtn.addEventListener('click', ()=>{
         let val = usernameInput.value.trim();
-        if(!val) val = generateGuest();
-        // set once: store and lock UI
+        if(!val) {
+          // generate guest if blank
+          val = 'Guest' + Math.floor(Math.random()*9000 + 1000);
+        }
         username = val;
         localStorage.setItem('notcord_username', username);
-        usernameDisplay.textContent = username;
-        usernameDisplay.style.display = 'block';
-        nameSetupBar.style.display = 'none';
+        lockUsernameUI();
         setStatus('Username set: ' + username);
       });
 
-      sendBtn.addEventListener('click', ()=> {
-        const text = messageInput.value;
-        if(!text.trim()) return;
-        postMessage(text.trim());
+      // send
+      sendBtn.addEventListener('click', ()=>{
+        const txt = messageInput.value;
+        if(!txt.trim()) return;
+        postMessage(txt);
         messageInput.value = '';
       });
 
@@ -392,18 +431,52 @@
         }
       });
 
-      // init
-      initializeUsernameUI();
-      fetchMessages();
-      setStatus('Connected (polling every 4s)');
-      polling = setInterval(fetchMessages, 4000);
-
-      window.addEventListener('beforeunload', ()=> {
-        if(polling) clearInterval(polling);
+      // appearance inputs
+      nameColorInput.addEventListener('input', (e)=> applyNameColor(e.target.value));
+      resetNameColorBtn.addEventListener('click', ()=>{
+        nameColor = '#ffcc00';
+        nameColorInput.value = nameColor;
+        applyNameColor(nameColor);
       });
 
-      // focus input
-      messageInput.focus();
+      accentColorInput.addEventListener('input', (e)=> applyAccentColor(e.target.value));
+      resetAccentBtn.addEventListener('click', ()=>{
+        accentColor = '#5865f2';
+        accentColorInput.value = accentColor;
+        applyAccentColor(accentColor);
+      });
+
+      themeToggleBtn.addEventListener('click', ()=> toggleTheme());
+      resetThemeBtn.addEventListener('click', ()=> {
+        theme = 'dark';
+        localStorage.setItem('notcord_theme', theme);
+        applyTheme();
+      });
+
+      // initialization
+      function init(){
+        // apply saved settings
+        applyTheme();
+        initializeAppearanceInputs();
+
+        // username
+        if(username){
+          lockUsernameUI();
+        } else {
+          usernameBox.style.display = 'flex';
+          usernameLocked.style.display = 'none';
+        }
+
+        // channel
+        setActiveChannel(activeChannel);
+
+        setStatus('Connected (polling every 4s)');
+      }
+
+      init();
+
+      // cleanup on unload
+      window.addEventListener('beforeunload', ()=> { if(polling) clearInterval(polling); });
     })();
   </script>
 </body>
