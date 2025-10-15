@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -16,7 +16,7 @@
       --border: rgba(255,255,255,0.06);
       --text: #e6eef6;
     }
-    [data-theme="light"]{
+    :root[data-theme="light"]{
       --bg-0: #f3f7fb;
       --bg-1: #eef4fb;
       --panel: #ffffff;
@@ -62,7 +62,7 @@
     }
     .usernameLocked{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);font-weight:600}
 
-    .channels{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+    .channels{margin-top:6px;display:flex;flex-direction:column;gap:6px;overflow:auto}
     .channel{
       padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer;border:1px solid transparent;
       display:flex;justify-content:space-between;align-items:center;
@@ -84,18 +84,22 @@
     .header .spacer{flex:1}
     .messages{
       flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;
+      /* ensure we can scroll */
+      min-height: 0;
     }
     .message{display:flex;gap:12px;align-items:flex-start;max-width:85%;}
     .message.me{margin-left:auto;justify-content:flex-end;}
-    .bubble{background:var(--msg-bg);padding:10px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);display:flex;flex-direction:column;gap:6px;color:#dbe8ff}
+    .bubble{background:var(--msg-bg);padding:10px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);display:flex;flex-direction:column;gap:6px;color:#dbe8ff;word-break:break-word}
     .message.me .bubble{background:var(--me-bg)}
     .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
     .meta .name{font-weight:700}
     .meta .time{font-size:12px;color:var(--muted)}
-    .text{white-space:pre-wrap;color:inherit;font-size:15px}
+    .text{white-space:pre-wrap;color:inherit;font-size:15px;word-break:break-word;overflow-wrap:break-word}
 
     .inputArea{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
     .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid var(--border);color:inherit;outline:none}
+    .controls{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:120px}
+    .charCount{font-size:12px;color:var(--muted)}
     .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
     .sendBtn:disabled{opacity:0.6;cursor:default}
 
@@ -110,7 +114,7 @@
   </style>
 </head>
 <body>
-  <div class="app" id="app" data-theme="dark">
+  <div class="app" id="app">
     <aside class="sidebar" id="sidebar">
       <div class="brand"><div class="dot"></div>notcord</div>
 
@@ -176,8 +180,11 @@
       <div class="messages" id="messages" role="log" aria-atomic="false"></div>
 
       <div class="inputArea">
-        <textarea id="messageInput" placeholder="Message (Shift+Enter for newline)"></textarea>
-        <button id="sendBtn" class="sendBtn">Send</button>
+        <textarea id="messageInput" placeholder="Message (Shift+Enter for newline)" maxlength="100"></textarea>
+        <div class="controls">
+          <div class="charCount" id="charCount">0 / 100</div>
+          <button id="sendBtn" class="sendBtn" disabled>Send</button>
+        </div>
       </div>
     </section>
   </div>
@@ -192,6 +199,7 @@
       };
 
       // DOM
+      const rootEl = document.documentElement;
       const appEl = document.getElementById('app');
       const channelsEl = document.getElementById('channels');
       const channelTitleEl = document.getElementById('channelTitle');
@@ -199,6 +207,7 @@
       const statusEl = document.getElementById('status');
       const messageInput = document.getElementById('messageInput');
       const sendBtn = document.getElementById('sendBtn');
+      const charCountEl = document.getElementById('charCount');
 
       const usernameBox = document.getElementById('usernameBox');
       const usernameInput = document.getElementById('usernameInput');
@@ -222,13 +231,13 @@
       // user settings
       let username = localStorage.getItem('notcord_username') || '';
       let nameColor = localStorage.getItem('notcord_nameColor') || '#ffcc00';
-      let accentColor = localStorage.getItem('notcord_accent') || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#5865f2';
+      let accentColor = localStorage.getItem('notcord_accent') || '#5865f2';
       let theme = localStorage.getItem('notcord_theme') || 'dark'; // 'dark' or 'light'
+      const MAX_CHARS = 100;
 
       // initial UI state
       function applyTheme(){
-        if(theme === 'light') appEl.setAttribute('data-theme','light');
-        else appEl.setAttribute('data-theme','dark');
+        rootEl.setAttribute('data-theme', theme);
         document.documentElement.style.setProperty('--accent', accentColor);
       }
 
@@ -377,7 +386,6 @@
       function applyNameColor(c){
         nameColor = c;
         localStorage.setItem('notcord_nameColor', nameColor);
-        // refresh messages to show color on our name
         Array.from(messagesEl.querySelectorAll('.meta .name')).forEach(el=>{
           if(el.textContent === username) el.style.color = nameColor;
         });
@@ -395,39 +403,60 @@
         applyTheme();
       }
 
+      // Input and controls
+      function updateCharCountAndState(){
+        let val = messageInput.value || '';
+        if(val.length > MAX_CHARS){
+          // trim safely
+          const trimmed = val.slice(0, MAX_CHARS);
+          messageInput.value = trimmed;
+          val = trimmed;
+        }
+        charCountEl.textContent = `${val.length} / ${MAX_CHARS}`;
+        // enable send only if username set and has at least 1 non-space char
+        const canSend = username && val.trim().length > 0;
+        sendBtn.disabled = !canSend || isSending;
+      }
+
       // Event bindings
-      // Channel click
       channelsEl.addEventListener('click', (e)=>{
         const ch = e.target.closest('.channel');
         if(!ch) return;
         setActiveChannel(ch.dataset.id);
       });
 
-      // set username
       setNameBtn.addEventListener('click', ()=>{
         let val = usernameInput.value.trim();
         if(!val) {
-          // generate guest if blank
           val = 'Guest' + Math.floor(Math.random()*9000 + 1000);
         }
         username = val;
         localStorage.setItem('notcord_username', username);
         lockUsernameUI();
         setStatus('Username set: ' + username);
+        updateCharCountAndState();
       });
 
-      // send
       sendBtn.addEventListener('click', ()=>{
         const txt = messageInput.value;
         if(!txt.trim()) return;
         postMessage(txt);
         messageInput.value = '';
+        updateCharCountAndState();
+      });
+
+      messageInput.addEventListener('input', (e)=>{
+        // enforce maxlength and update counter
+        if(messageInput.value.length > MAX_CHARS){
+          messageInput.value = messageInput.value.slice(0, MAX_CHARS);
+        }
+        updateCharCountAndState();
       });
 
       messageInput.addEventListener('keydown', (e)=>{
         if(e.key === 'Enter' && !e.shiftKey){
           e.preventDefault();
-          sendBtn.click();
+          if(!sendBtn.disabled) sendBtn.click();
         }
       });
 
@@ -469,6 +498,9 @@
 
         // channel
         setActiveChannel(activeChannel);
+
+        // initial char state
+        updateCharCountAndState();
 
         setStatus('Connected (polling every 4s)');
       }
