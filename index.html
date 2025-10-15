@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -36,9 +36,10 @@
       grid-template-columns:260px 1fr;
       gap:0;
       overflow:hidden;
+      align-items:stretch;
     }
 
-    /* Sidebar */
+    /* Sidebar: fixed height, independent of message size */
     .sidebar{
       background:var(--panel);
       border-right:1px solid var(--border);
@@ -46,8 +47,11 @@
       display:flex;
       flex-direction:column;
       gap:12px;
+      height:100vh;             /* enforce full viewport height */
+      overflow:auto;            /* independent scrolling if content grows */
+      flex-shrink:0;
     }
-    .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px;white-space:nowrap}
     .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(88,101,242,0.22)}
     .usernameBox{
       display:flex;
@@ -56,16 +60,18 @@
     }
     .usernameBox input{
       flex:1;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:inherit;outline:none;
+      min-width:0; /* allow shrinking */
     }
     .usernameBox button{
       padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;
     }
-    .usernameLocked{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);font-weight:600}
+    .usernameLocked{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);font-weight:600;overflow:hidden}
+    .usernameLocked #usernameDisplay{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
 
     .channels{margin-top:6px;display:flex;flex-direction:column;gap:6px;overflow:auto}
     .channel{
       padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer;border:1px solid transparent;
-      display:flex;justify-content:space-between;align-items:center;
+      display:flex;justify-content:space-between;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     }
     .channel:hover{background:rgba(255,255,255,0.01)}
     .channel.active{background:linear-gradient(90deg, rgba(88,101,242,0.12), rgba(88,101,242,0.02));color:var(--text);border-color:rgba(88,101,242,0.12)}
@@ -76,7 +82,7 @@
     .settings .toggleBtn{padding:8px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer}
 
     /* Chat area */
-    .chatPanel{display:flex;flex-direction:column;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);position:relative}
+    .chatPanel{display:flex;flex-direction:column;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);position:relative;min-height:0}
     .header{
       padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;
     }
@@ -84,8 +90,7 @@
     .header .spacer{flex:1}
     .messages{
       flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;
-      /* ensure we can scroll */
-      min-height: 0;
+      min-height:0; /* allows proper flex scrolling inside grid */
     }
     .message{display:flex;gap:12px;align-items:flex-start;max-width:85%;}
     .message.me{margin-left:auto;justify-content:flex-end;}
@@ -97,7 +102,7 @@
     .text{white-space:pre-wrap;color:inherit;font-size:15px;word-break:break-word;overflow-wrap:break-word}
 
     .inputArea{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
-    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid var(--border);color:inherit;outline:none}
+    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid var(--border);color:inherit;outline:none;min-width:0}
     .controls{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:120px}
     .charCount{font-size:12px;color:var(--muted)}
     .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
@@ -119,12 +124,10 @@
       <div class="brand"><div class="dot"></div>notcord</div>
 
       <div id="usernameSection">
-        <!-- shown when username not set -->
         <div class="usernameBox" id="usernameBox">
           <input type="text" id="usernameInput" placeholder="Choose username (once)" maxlength="40" />
           <button id="setNameBtn">Set</button>
         </div>
-        <!-- shown when username locked -->
         <div class="usernameLocked" id="usernameLocked" style="display:none">
           <div id="usernameDisplay"></div>
         </div>
@@ -292,17 +295,17 @@
       }
 
       function scrollToBottom(){
-        requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight);
+        requestAnimationFrame(()=> { messagesEl.scrollTop = messagesEl.scrollHeight; });
       }
 
       // Fetch messages for current channel
       async function fetchMessages(){
-        if(!apiBase) return;
+        if(!apiBase) return false;
         try{
           const res = await fetch(apiBase);
           if(!res.ok) throw new Error('Fetch failed: ' + res.status);
           const data = await res.json();
-          if(!Array.isArray(data)) return;
+          if(!Array.isArray(data)) return false;
           data.sort((a,b)=>{
             const ta = new Date(a.createdAt||a.created_at||a.timestamp||0).getTime() || (Number(a.id)||0);
             const tb = new Date(b.createdAt||b.created_at||b.timestamp||0).getTime() || (Number(b.id)||0);
@@ -316,9 +319,11 @@
           }
           scrollToBottom();
           setStatus('Connected — ' + data.length + ' messages');
+          return true;
         }catch(err){
           console.error(err);
           setStatus('Error fetching messages');
+          return false;
         }
       }
 
@@ -361,17 +366,17 @@
         }
       }
 
-      // Channel switching
-      function setActiveChannel(id){
+      // Channel switching (returns promise that resolves after first fetch)
+      async function setActiveChannel(id){
         activeChannel = id;
         apiBase = CHANNELS[id];
         localStorage.setItem('notcord_channel', id);
-        // UI active state
         Array.from(channelsEl.children).forEach(ch => ch.classList.toggle('active', ch.dataset.id === id));
         channelTitleEl.textContent = '# ' + id;
-        // restart polling for new channel
         if(polling) clearInterval(polling);
-        fetchMessages();
+        await fetchMessages();
+        // ensure we scroll to bottom after initial load
+        scrollToBottom();
         polling = setInterval(fetchMessages, 4000);
       }
 
@@ -407,13 +412,11 @@
       function updateCharCountAndState(){
         let val = messageInput.value || '';
         if(val.length > MAX_CHARS){
-          // trim safely
           const trimmed = val.slice(0, MAX_CHARS);
           messageInput.value = trimmed;
           val = trimmed;
         }
         charCountEl.textContent = `${val.length} / ${MAX_CHARS}`;
-        // enable send only if username set and has at least 1 non-space char
         const canSend = username && val.trim().length > 0;
         sendBtn.disabled = !canSend || isSending;
       }
@@ -422,7 +425,8 @@
       channelsEl.addEventListener('click', (e)=>{
         const ch = e.target.closest('.channel');
         if(!ch) return;
-        setActiveChannel(ch.dataset.id);
+        // fire-and-forget; switching UI updates immediately
+        setActiveChannel(ch.dataset.id).catch(()=>{ /* already handled */ });
       });
 
       setNameBtn.addEventListener('click', ()=>{
@@ -446,7 +450,6 @@
       });
 
       messageInput.addEventListener('input', (e)=>{
-        // enforce maxlength and update counter
         if(messageInput.value.length > MAX_CHARS){
           messageInput.value = messageInput.value.slice(0, MAX_CHARS);
         }
@@ -460,7 +463,6 @@
         }
       });
 
-      // appearance inputs
       nameColorInput.addEventListener('input', (e)=> applyNameColor(e.target.value));
       resetNameColorBtn.addEventListener('click', ()=>{
         nameColor = '#ffcc00';
@@ -483,12 +485,10 @@
       });
 
       // initialization
-      function init(){
-        // apply saved settings
+      async function init(){
         applyTheme();
         initializeAppearanceInputs();
 
-        // username
         if(username){
           lockUsernameUI();
         } else {
@@ -496,13 +496,20 @@
           usernameLocked.style.display = 'none';
         }
 
-        // channel
-        setActiveChannel(activeChannel);
+        // ensure inputs reflect stored values
+        nameColorInput.value = nameColor;
+        accentColorInput.value = accentColor;
 
-        // initial char state
+        // load selected channel and ensure we scroll to bottom after messages load
+        await setActiveChannel(activeChannel);
+
+        // keep char count state in sync
         updateCharCountAndState();
 
         setStatus('Connected (polling every 4s)');
+
+        // guard to ensure bottom on load (handles timing edge cases)
+        setTimeout(scrollToBottom, 120);
       }
 
       init();
