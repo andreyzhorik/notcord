@@ -8,6 +8,7 @@
     :root{
       --theme-1: #071226;
       --theme-2: #07101a;
+      --theme-3: #0b2233; /* chat bubble / logo third color */
       --muted: #9aa4b2;
       --accent: #5865f2;
       --msg-bg: #111827;
@@ -15,15 +16,27 @@
       --border: rgba(255,255,255,0.06);
       --text: #e6eef6;
     }
+
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Helvetica,Arial;color:var(--text);
       background:linear-gradient(180deg,var(--theme-1) 0%, var(--theme-2) 100%);
     }
+
     .app { width:100%; height:100vh; display:grid; grid-template-columns:260px 1fr 240px; overflow:hidden; }
     .sidebar{ padding:14px; display:flex; flex-direction:column; gap:12px; height:100vh; overflow:auto; background:linear-gradient(180deg,var(--theme-1),var(--theme-2)); border-right:1px solid var(--border) }
     .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px}
-    .brand .dot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--theme-1),var(--theme-2));box-shadow:0 0 8px rgba(0,0,0,0.6)}
-    .brand .name{background:linear-gradient(90deg,var(--theme-1),var(--theme-2));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+    /* logo uses 3-color gradient */
+    .brand .dot{
+      width:18px;height:18px;border-radius:50%;
+      background:linear-gradient(135deg,var(--theme-1),var(--theme-2),var(--theme-3));
+      box-shadow:0 0 10px rgba(0,0,0,0.6);
+      flex-shrink:0;
+    }
+    .brand .name{
+      background:linear-gradient(90deg,var(--theme-1),var(--theme-2),var(--theme-3));
+      -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800
+    }
+
     .usernameBox{display:flex;gap:8px;align-items:center}
     .usernameBox input{flex:1;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:inherit;outline:none}
     .usernameBox button{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
@@ -48,8 +61,9 @@
     .messages{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;min-height:0}
     .message{display:flex;gap:12px;align-items:flex-start;max-width:85%}
     .message.me{margin-left:auto;justify-content:flex-end}
-    .bubble{background:var(--msg-bg);padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;color:#dbe8ff;word-break:break-word;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-    .message.me .bubble{background:var(--me-bg)}
+    /* chat bubble now has a left accent using theme-3 */
+    .bubble{background:var(--msg-bg);padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;color:#dbe8ff;word-break:break-word;box-shadow:0 6px 18px rgba(2,6,23,0.6);border-left:4px solid var(--theme-3)}
+    .message.me .bubble{background:var(--me-bg);border-left-color:var(--accent)}
     .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
     .meta .name{font-weight:700}
     .meta .time{font-size:12px;color:var(--muted)}
@@ -79,7 +93,7 @@
 <body>
   <div class="app" id="app">
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><div class="dot"></div><div class="name">notcord</div></div>
+      <div class="brand"><div class="dot" aria-hidden></div><div class="name">notcord</div></div>
 
       <div id="usernameSection">
         <div class="usernameBox" id="usernameBox">
@@ -123,7 +137,17 @@
           </div>
         </label>
 
-        <div style="font-size:12px;color:var(--muted);padding-top:6px">Username and appearance are saved in this browser.<br/>Use "/w name text" to send a private message.</div>
+        <label>Theme color 3 (chat boxes & logo)
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" id="themeColor3" title="Theme color 3" />
+            <div style="flex:1"></div>
+            <button id="resetTheme3" class="toggleBtn">Reset</button>
+          </div>
+        </label>
+
+        <div style="font-size:12px;color:var(--muted);padding-top:6px">
+          Username and appearance are saved in this browser.<br/>Use "/w name text" to send a private message.
+        </div>
       </div>
     </aside>
 
@@ -191,9 +215,11 @@
       const nameColorInput = document.getElementById('nameColor');
       const themeColor1Input = document.getElementById('themeColor1');
       const themeColor2Input = document.getElementById('themeColor2');
+      const themeColor3Input = document.getElementById('themeColor3');
       const resetNameColorBtn = document.getElementById('resetNameColor');
       const resetTheme1Btn = document.getElementById('resetTheme1');
       const resetTheme2Btn = document.getElementById('resetTheme2');
+      const resetTheme3Btn = document.getElementById('resetTheme3');
 
       const playersListEl = document.getElementById('playersList');
       const playersStatusEl = document.getElementById('playersStatus');
@@ -205,6 +231,7 @@
       let playersPolling = null;
       let isSending = false;
       const MAX_CHARS = 100;
+      const MAX_MESSAGES = 80;
 
       // typing (localStorage-based)
       const TYPING_KEY = 'notcord_typing_v1';
@@ -221,19 +248,22 @@
       let nameColor = localStorage.getItem('notcord_nameColor') || '#ffcc00';
       let themeColor1 = localStorage.getItem('notcord_theme1') || '#071226';
       let themeColor2 = localStorage.getItem('notcord_theme2') || '#07101a';
+      let themeColor3 = localStorage.getItem('notcord_theme3') || '#0b2233';
       let accentColor = localStorage.getItem('notcord_accent') || themeColor1;
       let localPlayerId = localStorage.getItem('notcord_playerId') || null;
 
-      // theme
+      // theme application
       function applyTheme(){
         document.documentElement.style.setProperty('--theme-1', themeColor1);
         document.documentElement.style.setProperty('--theme-2', themeColor2);
+        document.documentElement.style.setProperty('--theme-3', themeColor3);
         document.documentElement.style.setProperty('--accent', accentColor || themeColor1);
       }
       function initializeAppearanceInputs(){
         nameColorInput.value = nameColor;
         themeColor1Input.value = themeColor1;
         themeColor2Input.value = themeColor2;
+        themeColor3Input.value = themeColor3;
       }
 
       function setStatus(txt){ statusEl.textContent = txt; }
@@ -248,39 +278,30 @@
       function detectNameColorFromMsg(msg){ return msg.nameColor || msg.color || msg.name_color || null; }
 
       function renderMessage(msg, localUsername){
-        // Private visibility: render only if not private OR private to local user OR authored by local user
         if(msg.privateTo && !(msg.privateTo === localUsername || (msg.username === localUsername))) return null;
-
         const container = document.createElement('div');
         const author = msg.username || msg.name || 'Unknown';
         const isMe = author === localUsername;
         container.className = 'message' + (isMe ? ' me' : '');
-
         const bubble = document.createElement('div'); bubble.className = 'bubble';
         const meta = document.createElement('div'); meta.className = 'meta';
         const nameEl = document.createElement('span'); nameEl.className = 'name';
         nameEl.textContent = author;
-
         const msgColor = detectNameColorFromMsg(msg);
         if(msgColor) nameEl.style.color = msgColor;
         else if(isMe && nameColor) nameEl.style.color = nameColor;
-
         const timeEl = document.createElement('span'); timeEl.className = 'time';
         timeEl.textContent = formatTime(msg.createdAt || msg.created_at || msg.timestamp || msg.time || '');
-
         meta.appendChild(nameEl);
         meta.appendChild(timeEl);
-
         if(msg.privateTo) {
           const tag = document.createElement('span');
           tag.className = 'privateTag';
           tag.textContent = msg.username === localUsername ? `to ${msg.privateTo}` : `private`;
           meta.appendChild(tag);
         }
-
         const text = document.createElement('div'); text.className = 'text';
         text.textContent = msg.message || msg.text || msg.content || '';
-
         bubble.appendChild(meta);
         bubble.appendChild(text);
         container.appendChild(bubble);
@@ -290,12 +311,51 @@
       function isAtBottom(){
         return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - AUTO_SCROLL_THRESHOLD;
       }
-
       function scrollToBottom(){
         requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight);
       }
 
-      // Fetch messages (filter private messages not for current user) with scroll preservation
+      // safeFetch helper
+      async function safeFetch(url, method='GET', body=null){
+        try{
+          const opts = { method, headers:{} };
+          if(body !== null){ opts.headers['Content-Type']='application/json'; opts.body = JSON.stringify(body); }
+          const r = await fetch(url, opts);
+          if(!r.ok){ console.warn('safeFetch non-OK', r.status, url); return null; }
+          if(r.status === 204) return null;
+          return await r.json();
+        }catch(e){ console.warn('safeFetch failed', e, url); return null; }
+      }
+
+      // enforce message limit: delete oldest messages from API when > MAX_MESSAGES
+      async function enforceMessageLimit(){
+        if(!apiBase) return;
+        try{
+          const res = await fetch(apiBase);
+          if(!res.ok) return;
+          const data = await res.json();
+          if(!Array.isArray(data)) return;
+          if(data.length <= MAX_MESSAGES) return;
+          // sort oldest first
+          data.sort((a,b)=>{
+            const ta = new Date(a.createdAt||a.created_at||a.timestamp||0).getTime() || (Number(a.id)||0);
+            const tb = new Date(b.createdAt||b.created_at||b.timestamp||0).getTime() || (Number(b.id)||0);
+            return ta - tb;
+          });
+          const deleteCount = data.length - MAX_MESSAGES;
+          const toDelete = data.slice(0, deleteCount);
+          for(const msg of toDelete){
+            if(msg && (msg.id || msg._id)){
+              const id = msg.id || msg._id;
+              await safeFetch(`${apiBase}/${id}`, 'DELETE', null);
+            }
+          }
+        }catch(e){
+          console.warn('enforceMessageLimit failed', e);
+        }
+      }
+
+      // Fetch messages with scroll preservation
       async function fetchMessagesFromApi(){
         if(!apiBase) return false;
         try{
@@ -309,7 +369,6 @@
             return ta - tb;
           });
 
-          // preserve scroll position if user scrolled up (not autoScroll)
           const prevScrollTop = messagesEl.scrollTop;
           const prevScrollHeight = messagesEl.scrollHeight;
           const wasAtBottom = isAtBottom();
@@ -320,16 +379,14 @@
             if(el) messagesEl.appendChild(el);
           }
 
-          // If user is at bottom or autoScroll is enabled, scroll to bottom; otherwise maintain relative position
-          if(wasAtBottom || autoScroll){
-            scrollToBottom();
-          } else {
-            // preserve view (approx): keep the same distance from top accounting for new height
-            const newScrollHeight = messagesEl.scrollHeight;
-            messagesEl.scrollTop = Math.max(0, newScrollHeight - prevScrollHeight + prevScrollTop);
-          }
+          if(wasAtBottom || autoScroll) scrollToBottom();
+          else messagesEl.scrollTop = Math.max(0, messagesEl.scrollHeight - prevScrollHeight + prevScrollTop);
 
           setStatus('Connected — ' + data.length + ' messages');
+
+          // enforce limit in background
+          if(data.length > MAX_MESSAGES) await enforceMessageLimit();
+
           return true;
         }catch(err){
           console.error(err);
@@ -405,6 +462,8 @@
             body: JSON.stringify(payload)
           });
           if(!res.ok) throw new Error('Send failed: ' + res.status);
+          // ensure we don't exceed limit
+          await enforceMessageLimit();
           await fetchMessages();
         }catch(err){
           console.error(err);
@@ -417,7 +476,7 @@
         }
       }
 
-      // === Players handling: fetch all players from PLAYERS_API and display their online status.
+      // Players handling
       function normalizePlayerName(p){ return p.name || p.username || p.nick || p.displayName || (p.id?String(p.id):String(p)); }
       function detectPlayerOnline(p){
         if(typeof p.online === 'boolean') return p.online;
@@ -444,7 +503,6 @@
             else offlineList.push({name, raw:p});
           }
 
-          // ensure local user visible
           if(username){
             const existsOnline = onlineList.some(x=>x.name===username);
             const existsOffline = offlineList.some(x=>x.name===username);
@@ -490,7 +548,7 @@
         }
       }
 
-      // Upsert local player into PLAYERS_API (find by name or create), store id in localStorage
+      // Upsert local player
       async function upsertLocalPlayer(){
         if(!username) return;
         try{
@@ -507,12 +565,9 @@
             const created = await safeFetch(PLAYERS_API, 'POST', { name: username, online:true, nameColor });
             if(created && created.id){ localPlayerId = created.id; localStorage.setItem('notcord_playerId', localPlayerId); }
           }
-        }catch(e){
-          console.warn('upsertLocalPlayer error', e);
-        } finally { fetchPlayers().catch(()=>{}); }
+        }catch(e){ console.warn('upsertLocalPlayer error', e); } finally { fetchPlayers().catch(()=>{}); }
       }
 
-      // Mark local player offline/online on API (best-effort)
       async function setLocalPlayerOnlineState(isOnline){
         if(!localPlayerId) return;
         try{
@@ -524,18 +579,7 @@
         }catch(e){ console.warn('setLocalPlayerOnlineState', e); } finally { fetchPlayers().catch(()=>{}); }
       }
 
-      // safeFetch helper
-      async function safeFetch(url, method='GET', body=null){
-        try{
-          const opts = { method, headers:{} };
-          if(body !== null){ opts.headers['Content-Type']='application/json'; opts.body = JSON.stringify(body); }
-          const r = await fetch(url, opts);
-          if(!r.ok){ console.warn('safeFetch non-OK', r.status, url); return null; }
-          return await r.json();
-        }catch(e){ console.warn('safeFetch failed', e, url); return null; }
-      }
-
-      // Typing indicator using localStorage map { channel: { user: timestamp } }
+      // Typing indicator (localStorage)
       function readTypingMap(){ try{ return JSON.parse(localStorage.getItem(TYPING_KEY)||'{}'); }catch(e){ return {}; } }
       function writeTypingMap(m){ try{ localStorage.setItem(TYPING_KEY, JSON.stringify(m)); }catch(e){} }
       function setLocalTyping(active){
@@ -547,7 +591,6 @@
         writeTypingMap(map);
         updateTypingUI();
       }
-
       function cleanupTypingMap(){
         const map = readTypingMap();
         const now = Date.now();
@@ -562,7 +605,6 @@
         if(changed) writeTypingMap(map);
         updateTypingUI();
       }
-
       function updateTypingUI(){
         const map = readTypingMap();
         const channelMap = map[activeChannel] || {};
@@ -583,7 +625,6 @@
         const canSend = username && (messageInput.value||'').trim().length > 0 && activeChannel !== 'announcements' && !isSending;
         sendBtn.disabled = !canSend;
       }
-
       function scheduleTypingStop(){
         if(typingStopTimeout) clearTimeout(typingStopTimeout);
         typingStopTimeout = setTimeout(()=> {
@@ -592,10 +633,8 @@
         }, 1500);
       }
 
-      // Manage autoScroll when user scrolls up/down
-      messagesEl.addEventListener('scroll', () => {
-        autoScroll = isAtBottom();
-      });
+      // scroll handling
+      messagesEl.addEventListener('scroll', () => { autoScroll = isAtBottom(); });
 
       // Events
       channelsEl.addEventListener('click', (e)=>{
@@ -613,6 +652,7 @@
         usernameLocked.style.display = 'flex';
         usernameDisplay.textContent = username;
         await upsertLocalPlayer();
+        await setLocalPlayerOnlineState(true);
         await fetchPlayers();
         updateCharCountAndState();
       });
@@ -654,6 +694,9 @@
       themeColor2Input.addEventListener('input', (e)=>{ themeColor2 = e.target.value; localStorage.setItem('notcord_theme2', themeColor2); applyTheme(); });
       resetTheme2Btn.addEventListener('click', ()=>{ themeColor2 = '#07101a'; themeColor2Input.value = themeColor2; localStorage.setItem('notcord_theme2', themeColor2); applyTheme(); });
 
+      themeColor3Input.addEventListener('input', (e)=>{ themeColor3 = e.target.value; localStorage.setItem('notcord_theme3', themeColor3); applyTheme(); });
+      resetTheme3Btn.addEventListener('click', ()=>{ themeColor3 = '#0b2233'; themeColor3Input.value = themeColor3; localStorage.setItem('notcord_theme3', themeColor3); applyTheme(); });
+
       // Channel switch logic
       async function setActiveChannel(id){
         activeChannel = id;
@@ -672,25 +715,15 @@
       document.addEventListener('visibilitychange', async () => {
         if(!username) return;
         if(document.hidden){
-          // Mark offline when tabbed out
           await setLocalPlayerOnlineState(false).catch(()=>{});
         } else {
-          // Mark online when tab focused again (and ensure player record exists)
           await upsertLocalPlayer().catch(()=>{});
           await setLocalPlayerOnlineState(true).catch(()=>{});
         }
       });
 
-      window.addEventListener('blur', async () => {
-        if(!username) return;
-        await setLocalPlayerOnlineState(false).catch(()=>{});
-      });
-
-      window.addEventListener('focus', async () => {
-        if(!username) return;
-        await upsertLocalPlayer().catch(()=>{});
-        await setLocalPlayerOnlineState(true).catch(()=>{});
-      });
+      window.addEventListener('blur', async () => { if(!username) return; await setLocalPlayerOnlineState(false).catch(()=>{}); });
+      window.addEventListener('focus', async () => { if(!username) return; await upsertLocalPlayer().catch(()=>{}); await setLocalPlayerOnlineState(true).catch(()=>{}); });
 
       // Init
       async function init(){
@@ -714,6 +747,9 @@
         if(playersPolling) clearInterval(playersPolling);
         playersPolling = setInterval(fetchPlayers, 5000);
 
+        // run message limit enforcement periodically as extra safety
+        setInterval(() => { if(apiBase) enforceMessageLimit(); }, 60 * 1000);
+
         setStatus('Connected (polling every 4s)');
         setInterval(cleanupTypingMap, 2000);
         updateTypingUI();
@@ -734,7 +770,6 @@
             }
           }
         }catch(e){}
-        // clear typing entry
         try{
           const map = readTypingMap();
           if(map[activeChannel] && map[activeChannel][username]) { delete map[activeChannel][username]; writeTypingMap(map); }
