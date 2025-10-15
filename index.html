@@ -8,7 +8,6 @@
     :root{
       --theme-1: #071226;
       --theme-2: #07101a;
-      --panel-overlay: rgba(11,18,32,0.85);
       --muted: #9aa4b2;
       --accent: #5865f2;
       --msg-bg: #111827;
@@ -26,7 +25,7 @@
       width:100%;
       height:100vh;
       display:grid;
-      grid-template-columns:260px 1fr 220px;
+      grid-template-columns:260px 1fr 240px;
       gap:0;
       overflow:hidden;
       align-items:stretch;
@@ -43,7 +42,6 @@
       overflow:auto;
       flex-shrink:0;
     }
-
     .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px;white-space:nowrap}
     .brand .dot{
       width:12px;height:12px;border-radius:50%;
@@ -78,7 +76,6 @@
     .header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
     .header h2{margin:0;font-size:18px}
     .header .spacer{flex:1}
-    .header .right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
     .status{color:var(--muted);font-size:13px}
     .typing{color:var(--muted);font-size:12px;height:18px}
 
@@ -119,7 +116,7 @@
     .player.offline .statusDot{background:#a0a0a0}
 
     @media (max-width:980px){
-      .app{grid-template-columns:220px 1fr 180px}
+      .app{grid-template-columns:220px 1fr 160px}
     }
     @media (max-width:720px){
       .app{grid-template-columns:1fr}
@@ -188,7 +185,7 @@
       <div class="header">
         <h2 id="channelTitle"># general</h2>
         <div class="spacer"></div>
-        <div class="right">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
           <div id="status" class="status">Connecting...</div>
           <div id="typingIndicator" class="typing"></div>
         </div>
@@ -215,6 +212,7 @@
 
   <script>
     (function(){
+      // APIs
       const CHANNELS = {
         general: 'https://68e839b2f2707e6128ca35e1.mockapi.io/chat',
         school:  'https://68eeed86b06cc802829ba196.mockapi.io/schoolchat',
@@ -222,7 +220,7 @@
       };
       const PLAYERS_API = 'https://68e839b2f2707e6128ca35e1.mockapi.io/players';
 
-      // Read-only announcements (editable in code)
+      // Read-only announcements (editable here)
       const READ_ONLY_MESSAGES = [
         { username: 'Admin', message: 'Welcome to notcord — check pinned notes here.', createdAt: new Date().toISOString(), nameColor: '#ff7a18' },
         { username: 'Team',  message: 'Server maintenance scheduled: Sunday 02:00 UTC.', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(), nameColor: '#18a0ff' }
@@ -262,91 +260,66 @@
       let isSending = false;
       const MAX_CHARS = 100;
 
-      // typing shared key in localStorage
+      // typing (localStorage-based, optional)
       const TYPING_KEY = 'notcord_typing_v1';
-      const TYPING_EXPIRE_MS = 5000; // consider typing stale after 5s
+      const TYPING_EXPIRE_MS = 5000;
       let typingTimeout = null;
       let isLocalTyping = false;
 
-      // user settings
+      // user settings and player id management
       let username = localStorage.getItem('notcord_username') || '';
       let nameColor = localStorage.getItem('notcord_nameColor') || '#ffcc00';
       let themeColor1 = localStorage.getItem('notcord_theme1') || '#071226';
       let themeColor2 = localStorage.getItem('notcord_theme2') || '#07101a';
       let accentColor = localStorage.getItem('notcord_accent') || themeColor1;
+      // If we create or find a player entry on the API we store its id here so we can update online/offline later
+      let localPlayerId = localStorage.getItem('notcord_playerId') || null;
 
+      // theme
       function applyTheme(){
         document.documentElement.style.setProperty('--theme-1', themeColor1);
         document.documentElement.style.setProperty('--theme-2', themeColor2);
         document.documentElement.style.setProperty('--accent', accentColor || themeColor1);
       }
-
       function initializeAppearanceInputs(){
         nameColorInput.value = nameColor;
         themeColor1Input.value = themeColor1;
         themeColor2Input.value = themeColor2;
       }
 
-      function setStatus(txt){
-        statusEl.textContent = txt;
-      }
+      function setStatus(txt){ statusEl.textContent = txt; }
 
+      // message rendering
       function detectNameColorFromMsg(msg){
         return msg.nameColor || msg.color || msg.name_color || msg.colorHex || msg.colour || null;
       }
-
       function renderMessage(msg, isMe=false){
         const container = document.createElement('div');
         container.className = 'message' + (isMe ? ' me' : '');
-
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-
-        const meta = document.createElement('div');
-        meta.className = 'meta';
-        const name = document.createElement('span');
-        name.className = 'name';
+        const bubble = document.createElement('div'); bubble.className = 'bubble';
+        const meta = document.createElement('div'); meta.className = 'meta';
+        const name = document.createElement('span'); name.className = 'name';
         const author = msg.username || msg.name || msg.author || 'Unknown';
         name.textContent = author;
-
         const msgColor = detectNameColorFromMsg(msg);
-        if(msgColor){
-          name.style.color = msgColor;
-        } else if(author === username && nameColor){
-          name.style.color = nameColor;
-        }
-
-        const time = document.createElement('span');
-        time.className = 'time';
+        if(msgColor) name.style.color = msgColor;
+        else if(author === username && nameColor) name.style.color = nameColor;
+        const time = document.createElement('span'); time.className = 'time';
         const created = msg.createdAt || msg.created_at || msg.timestamp || msg.time || '';
         time.textContent = formatTime(created);
-
-        meta.appendChild(name);
-        meta.appendChild(time);
-
-        const text = document.createElement('div');
-        text.className = 'text';
+        meta.appendChild(name); meta.appendChild(time);
+        const text = document.createElement('div'); text.className = 'text';
         text.textContent = msg.message || msg.text || msg.content || msg.body || '';
-
-        bubble.appendChild(meta);
-        bubble.appendChild(text);
+        bubble.appendChild(meta); bubble.appendChild(text);
         container.appendChild(bubble);
         return container;
       }
-
       function formatTime(iso){
-        try{
-          const d = new Date(iso);
-          if(isNaN(d)) return '';
-          return d.toLocaleString([], { hour: '2-digit', minute: '2-digit' });
-        }catch(e){ return ''; }
+        try{ const d = new Date(iso); if(isNaN(d)) return ''; return d.toLocaleString([], { hour: '2-digit', minute: '2-digit' }); }catch(e){return ''}
       }
+      function scrollToBottom(){ requestAnimationFrame(()=>{ messagesEl.scrollTop = messagesEl.scrollHeight; }); }
 
-      function scrollToBottom(){
-        requestAnimationFrame(()=> { messagesEl.scrollTop = messagesEl.scrollHeight; });
-      }
-
-      // === Messages fetching ===
+      // === Messages fetch/post handling ===
       async function fetchMessagesFromApi(){
         if(!apiBase) return false;
         try{
@@ -354,7 +327,7 @@
           if(!res.ok) throw new Error('Fetch failed: ' + res.status);
           const data = await res.json();
           if(!Array.isArray(data)) return false;
-          data.sort((a,b)=>{
+          data.sort((a,b)=> {
             const ta = new Date(a.createdAt||a.created_at||a.timestamp||0).getTime() || (Number(a.id)||0);
             const tb = new Date(b.createdAt||b.created_at||b.timestamp||0).getTime() || (Number(b.id)||0);
             return ta - tb;
@@ -362,8 +335,7 @@
           messagesEl.innerHTML = '';
           for(const msg of data){
             const author = msg.username || msg.name || msg.author || '';
-            const isMe = (author === username);
-            messagesEl.appendChild(renderMessage(msg, isMe));
+            messagesEl.appendChild(renderMessage(msg, author === username));
           }
           scrollToBottom();
           setStatus('Connected — ' + data.length + ' messages');
@@ -374,7 +346,6 @@
           return false;
         }
       }
-
       async function loadReadOnlyMessages(){
         const data = Array.isArray(READ_ONLY_MESSAGES) ? READ_ONLY_MESSAGES.slice() : [];
         data.sort((a,b) => (new Date(a.createdAt||0).getTime()) - (new Date(b.createdAt||0).getTime()));
@@ -384,145 +355,101 @@
         setStatus('Announcements — ' + data.length + ' items (read-only)');
         return true;
       }
+      async function fetchMessages(){ if(activeChannel === 'announcements') return loadReadOnlyMessages(); return fetchMessagesFromApi(); }
 
-      async function fetchMessages(){
-        if(activeChannel === 'announcements') return loadReadOnlyMessages();
-        return fetchMessagesFromApi();
-      }
-
-      // === Posting ===
       async function postMessage(text){
         if(!text || !text.trim()) return;
         if(!username){ setStatus('Set username first'); return; }
         if(!apiBase){ setStatus('No channel selected'); return; }
         if(isSending) return;
-        isSending = true;
-        sendBtn.disabled = true;
-
-        const payload = {
-          username: username,
-          message: text.trim(),
-          createdAt: new Date().toISOString(),
-          nameColor: nameColor
-        };
-
+        isSending = true; sendBtn.disabled = true;
+        const payload = { username, message: text.trim(), createdAt: new Date().toISOString(), nameColor };
         const optimisticEl = renderMessage(payload, true);
-        messagesEl.appendChild(optimisticEl);
-        scrollToBottom();
-
+        messagesEl.appendChild(optimisticEl); scrollToBottom();
         try{
-          const res = await fetch(apiBase, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(payload)
-          });
-          if(!res.ok) throw new Error('Send failed: ' + res.status);
+          const res = await fetch(apiBase, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          if(!res.ok) throw new Error('Send failed: '+res.status);
           await fetchMessages();
         }catch(err){
           console.error(err);
           setStatus('Failed to send message');
-          const timeEl = optimisticEl.querySelector('.meta .time');
-          if(timeEl) timeEl.textContent += ' (failed)';
-        }finally{
-          isSending = false;
-          sendBtn.disabled = false;
-        }
+          const timeEl = optimisticEl.querySelector('.meta .time'); if(timeEl) timeEl.textContent += ' (failed)';
+        }finally{ isSending = false; sendBtn.disabled = false; }
       }
 
-      // === Channel handling ===
-      async function setActiveChannel(id){
-        activeChannel = id;
-        apiBase = CHANNELS[id] || null;
-        localStorage.setItem('notcord_channel', id);
-        Array.from(channelsEl.children).forEach(ch => ch.classList.toggle('active', ch.dataset.id === id));
-        channelTitleEl.textContent = '# ' + id;
-
-        if(id === 'announcements'){
-          messageInput.disabled = true;
-          messageInput.placeholder = 'Read-only channel';
-          sendBtn.disabled = true;
-          charCountEl.style.opacity = 0.5;
-        } else {
-          messageInput.disabled = false;
-          messageInput.placeholder = 'Message (Shift+Enter for newline)';
-          charCountEl.style.opacity = 1;
-        }
-
-        if(polling) clearInterval(polling);
-        await fetchMessages();
-        scrollToBottom();
-        if(id !== 'announcements') polling = setInterval(fetchMessages, 4000);
-      }
-
-      // === Players panel (show all players) ===
-      function normalizePlayerName(p){ return p.name || p.username || p.nick || p.displayName || p.id || String(p); }
-      function detectPlayerOnline(p){
-        if(typeof p.online === 'boolean') return p.online;
-        if(typeof p.active === 'boolean') return p.active;
-        if(typeof p.isOnline === 'boolean') return p.isOnline;
-        if(typeof p.status === 'string') return p.status.toLowerCase().includes('online');
-        if(typeof p.online === 'string') return p.online.toLowerCase() === 'true';
-        return false;
-      }
-
+      // === Players management (fully use PLAYERS_API) ===
+      // We will:
+      // - Fetch all players and render them.
+      // - When local user sets a name, attempt to find a matching player on the API.
+      //   - If found, update that player's online:true, name and nameColor.
+      //   - If not found, create a new player entry and store its id in localStorage (notcord_playerId).
+      // - On unload, if we have a localPlayerId, set that player to online:false (PUT).
+      // - When nameColor changes, update our player record if id is known.
       async function fetchPlayers(){
         try{
           const res = await fetch(PLAYERS_API);
-          if(!res.ok) throw new Error('Players fetch failed: ' + res.status);
+          if(!res.ok) throw new Error('Players fetch failed: '+res.status);
           const data = await res.json();
           if(!Array.isArray(data)){
             playersStatusEl.textContent = 'No players data';
             playersListEl.innerHTML = '';
-            injectLocalPlayer();
             return;
           }
 
-          // We'll render all players in the order returned, but visually group online first while keeping all.
+          // We'll group online first but display all players returned by API.
           const online = [];
           const offline = [];
           for(const p of data){
             const name = normalizePlayerName(p);
             const on = detectPlayerOnline(p);
-            const raw = p;
-            if(on) online.push({name, raw});
-            else offline.push({name, raw});
+            online.push(on ? {name, raw:p} : null);
+            offline.push(!on ? {name, raw:p} : null);
+            // we'll just collect separately below to avoid holes
           }
 
-          // Ensure local user appears (as online) if they have a name
+          // Build arrays properly (filter nulls)
+          const onList = data.filter(p => detectPlayerOnline(p)).map(p => ({ name: normalizePlayerName(p), raw: p }));
+          const offList = data.filter(p => !detectPlayerOnline(p)).map(p => ({ name: normalizePlayerName(p), raw: p }));
+
+          // Ensure our local user appears in the list visually:
           if(username){
-            const present = online.some(x=>x.name===username) || offline.some(x=>x.name===username);
-            if(!present) online.unshift({name:username, raw:{}, local:true});
+            const exists = onList.some(x=>x.name === username) || offList.some(x=>x.name === username);
+            if(!exists){
+              // prefer showing local as online
+              onList.unshift({ name: username, raw: { name: username, online: true }, local: true });
+            } else {
+              // if exists in offList, move to onList if we consider ourselves online
+              // (we will update API record when user sets name)
+            }
           }
 
+          // Render: online then offline
           playersListEl.innerHTML = '';
-          // Online header + all online entries (preserves duplicates if any)
           const headerOnline = document.createElement('div');
-          headerOnline.style.fontSize = '13px';
-          headerOnline.style.color = 'var(--muted)';
-          headerOnline.textContent = 'Online (' + online.length + ')';
+          headerOnline.style.fontSize = '13px'; headerOnline.style.color = 'var(--muted)';
+          headerOnline.textContent = 'Online (' + onList.length + ')';
           playersListEl.appendChild(headerOnline);
-          for(const p of online){
+
+          for(const p of onList){
             const item = document.createElement('div');
             item.className = 'player online' + (p.local ? ' you' : '');
             const displayName = escapeHtml(p.name);
             const youLabel = p.local ? ' <span style="margin-left:6px;font-size:12px;color:var(--muted)">(you)</span>' : '';
             item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span class="playerName" style="font-weight:600">${displayName}</span>${youLabel}</div><div style="font-size:12px;color:var(--muted)">online</div>`;
             const nameSpan = item.querySelector('.playerName');
-            // apply color if API provides it, else color local user
             if(p.raw && (p.raw.nameColor || p.raw.color)) nameSpan.style.color = p.raw.nameColor || p.raw.color;
             else if(p.local) nameSpan.style.color = nameColor;
             playersListEl.appendChild(item);
           }
 
-          // Separator
-          const sep = document.createElement('div'); sep.style.height='8px'; playersListEl.appendChild(sep);
+          const sep = document.createElement('div'); sep.style.height = '8px'; playersListEl.appendChild(sep);
 
           const headerOff = document.createElement('div');
-          headerOff.style.fontSize = '13px';
-          headerOff.style.color = 'var(--muted)';
-          headerOff.textContent = 'Offline (' + offline.length + ')';
+          headerOff.style.fontSize = '13px'; headerOff.style.color = 'var(--muted)';
+          headerOff.textContent = 'Offline (' + offList.length + ')';
           playersListEl.appendChild(headerOff);
-          for(const p of offline){
+
+          for(const p of offList){
             const item = document.createElement('div');
             item.className = 'player offline';
             const displayName = escapeHtml(p.name);
@@ -537,131 +464,151 @@
           console.error(err);
           playersStatusEl.textContent = 'Error loading players';
           playersListEl.innerHTML = '';
-          injectLocalPlayer();
         }
       }
 
-      function injectLocalPlayer(){
-        if(!username) return;
-        // If already present, color and return
-        const existing = playersListEl.querySelector('.player.you .playerName');
-        if(existing){ existing.style.color = nameColor; return; }
-        // If players list empty, just add a simple online you entry
-        const item = document.createElement('div');
-        item.className = 'player online you';
-        item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span class="playerName" style="font-weight:600">${escapeHtml(username)}</span> <span style="margin-left:6px;font-size:12px;color:var(--muted)">(you)</span></div><div style="font-size:12px;color:var(--muted)">online</div>`;
-        const nameSpan = item.querySelector('.playerName');
-        if(nameSpan) nameSpan.style.color = nameColor;
-        playersListEl.insertBefore(item, playersListEl.firstChild);
+      function normalizePlayerName(p){ return p.name || p.username || p.nick || p.displayName || p.id || String(p); }
+      function detectPlayerOnline(p){
+        if(typeof p.online === 'boolean') return p.online;
+        if(typeof p.active === 'boolean') return p.active;
+        if(typeof p.isOnline === 'boolean') return p.isOnline;
+        if(typeof p.status === 'string') return p.status.toLowerCase().includes('online');
+        if(typeof p.online === 'string') return p.online.toLowerCase() === 'true';
+        return false;
       }
-
       function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-      // === Typing status via localStorage (works across tabs on same origin) ===
-      // stored format: { "<channel>": { "<username>": timestamp, ... }, ... }
-      function readTypingMap(){
+      // Upsert local player on API: try to find by name, otherwise create. Store id in localStorage.
+      async function upsertLocalPlayer() {
+        if(!username) return;
         try{
-          const raw = localStorage.getItem(TYPING_KEY);
-          if(!raw) return {};
-          return JSON.parse(raw) || {};
-        }catch(e){ return {}; }
-      }
-      function writeTypingMap(map){
-        try{ localStorage.setItem(TYPING_KEY, JSON.stringify(map)); }catch(e){}
+          // fetch all to search for existing
+          const res = await fetch(PLAYERS_API);
+          if(!res.ok) throw new Error('Players fetch failed: '+res.status);
+          const data = await res.json();
+          if(!Array.isArray(data)) return;
+          const found = data.find(p => (normalizePlayerName(p) === username));
+          if(found){
+            // update found record: set online true and update color
+            localPlayerId = found.id;
+            localStorage.setItem('notcord_playerId', localPlayerId);
+            await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', { ...found, name: username, online: true, nameColor });
+          } else {
+            // create new
+            const createRes = await safeFetch(PLAYERS_API, 'POST', { name: username, online: true, nameColor });
+            if(createRes && createRes.id){
+              localPlayerId = createRes.id;
+              localStorage.setItem('notcord_playerId', localPlayerId);
+            }
+          }
+        }catch(err){
+          console.error('upsertLocalPlayer error', err);
+        } finally {
+          // refresh players panel to reflect changes
+          fetchPlayers().catch(()=>{});
+        }
       }
 
+      // Set local player's online state (used on unload)
+      async function setLocalPlayerOnlineState(isOnline){
+        if(!localPlayerId) return;
+        try{
+          // fetch existing to preserve other fields
+          const res = await fetch(`${PLAYERS_API}/${localPlayerId}`);
+          if(!res.ok) return;
+          const obj = await res.json();
+          obj.online = !!isOnline;
+          obj.name = username || obj.name;
+          if(nameColor) obj.nameColor = nameColor;
+          await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', obj);
+        }catch(err){
+          console.error('setLocalPlayerOnlineState error', err);
+        } finally {
+          fetchPlayers().catch(()=>{});
+        }
+      }
+
+      // helper that wraps fetch and returns parsed json on success
+      async function safeFetch(url, method='GET', body=null){
+        try{
+          const opts = { method, headers:{} };
+          if(body !== null){
+            opts.headers['Content-Type'] = 'application/json';
+            opts.body = JSON.stringify(body);
+          }
+          const r = await fetch(url, opts);
+          if(!r.ok) { console.warn('safeFetch non-OK', r.status, url); return null; }
+          const j = await r.json();
+          return j;
+        }catch(e){
+          console.warn('safeFetch failed', e, url);
+          return null;
+        }
+      }
+
+      // === Typing indicator (localStorage-based across tabs) ===
+      const TYPING_EXPIRE_MS = 5000;
+      const TYPING_KEY = 'notcord_typing_v1';
+      function readTypingMap(){ try{ return JSON.parse(localStorage.getItem(TYPING_KEY) || '{}') }catch(e){return {}} }
+      function writeTypingMap(m){ try{ localStorage.setItem(TYPING_KEY, JSON.stringify(m)); }catch(e){} }
       function setLocalTyping(active){
         if(!username) return;
         const map = readTypingMap();
         map[activeChannel] = map[activeChannel] || {};
-        if(active){
-          map[activeChannel][username] = Date.now();
-          isLocalTyping = true;
-        } else {
-          if(map[activeChannel]) delete map[activeChannel][username];
-          isLocalTyping = false;
-        }
+        if(active) map[activeChannel][username] = Date.now();
+        else { if(map[activeChannel]) delete map[activeChannel][username]; }
         writeTypingMap(map);
         updateTypingUI();
       }
-
-      // update UI based on storage map for current channel
-      function updateTypingUI(){
-        const map = readTypingMap();
-        const channelMap = map[activeChannel] || {};
-        const now = Date.now();
-        // collect valid typers except local user
-        const typers = [];
-        for(const [user, ts] of Object.entries(channelMap)){
-          if(user === username) continue;
-          if(typeof ts !== 'number' && !/^\d+$/.test(String(ts))) continue;
-          if(now - Number(ts) <= TYPING_EXPIRE_MS) typers.push(user);
-        }
-        // show appropriate text
-        if(typers.length === 0){
-          typingIndicatorEl.textContent = '';
-        } else if(typers.length === 1){
-          typingIndicatorEl.textContent = typers[0] + ' is typing...';
-        } else if(typers.length === 2){
-          typingIndicatorEl.textContent = typers[0] + ' and ' + typers[1] + ' are typing...';
-        } else {
-          typingIndicatorEl.textContent = typers[0] + ' and ' + (typers.length - 1) + ' others are typing...';
-        }
-      }
-
-      // remove stale typing entries periodically
       function cleanupTypingMap(){
         const map = readTypingMap();
-        const now = Date.now();
         let changed = false;
-        for(const channel of Object.keys(map)){
-          for(const user of Object.keys(map[channel])){
-            const ts = Number(map[channel][user] || 0);
-            if(now - ts > TYPING_EXPIRE_MS) {
-              delete map[channel][user];
-              changed = true;
-            }
+        const now = Date.now();
+        for(const ch of Object.keys(map)){
+          for(const user of Object.keys(map[ch])){
+            const ts = Number(map[ch][user] || 0);
+            if(now - ts > TYPING_EXPIRE_MS){ delete map[ch][user]; changed = true; }
           }
-          if(Object.keys(map[channel]).length === 0) delete map[channel];
+          if(Object.keys(map[ch]).length === 0) delete map[ch];
         }
         if(changed) writeTypingMap(map);
         updateTypingUI();
       }
-
-      // storage event -> someone else typing changed
-      window.addEventListener('storage', (e)=>{
-        if(e.key !== TYPING_KEY) return;
-        updateTypingUI();
-      });
-
-      // typing input handlers (debounced stop)
-      function scheduleTypingStop(){
-        if(typingTimeout) clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(()=> {
-          setLocalTyping(false);
-        }, 1500);
+      function updateTypingUI(){
+        const map = readTypingMap();
+        const ch = map[activeChannel] || {};
+        const now = Date.now();
+        const users = Object.keys(ch).filter(u => u !== username && (now - Number(ch[u] || 0) <= TYPING_EXPIRE_MS));
+        if(users.length === 0) typingIndicatorEl.textContent = '';
+        else if(users.length === 1) typingIndicatorEl.textContent = users[0] + ' is typing...';
+        else if(users.length === 2) typingIndicatorEl.textContent = users[0] + ' and ' + users[1] + ' are typing...';
+        else typingIndicatorEl.textContent = users[0] + ' and ' + (users.length - 1) + ' others are typing...';
       }
+      window.addEventListener('storage', (e)=> { if(e.key === TYPING_KEY) updateTypingUI(); });
 
-      // === Input controls & events ===
+      // === Input handling & UI helpers ===
       function updateCharCountAndState(){
         let val = messageInput.value || '';
-        if(val.length > MAX_CHARS){
-          messageInput.value = val.slice(0, MAX_CHARS);
-          val = messageInput.value;
-        }
+        if(val.length > MAX_CHARS) { messageInput.value = val.slice(0, MAX_CHARS); val = messageInput.value; }
         charCountEl.textContent = `${val.length} / ${MAX_CHARS}`;
         const canSend = username && val.trim().length > 0 && activeChannel !== 'announcements';
         sendBtn.disabled = !canSend || isSending;
       }
 
-      // Event bindings
-      channelsEl.addEventListener('click', (e)=>{
-        const ch = e.target.closest('.channel');
-        if(!ch) return;
+      // typing debounce
+      let typingTimeout = null;
+      function scheduleTypingStop(){
+        if(typingTimeout) clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(()=> setLocalTyping(false), 1500);
+      }
+
+      // === Event bindings ===
+      channelsEl.addEventListener('click', e => {
+        const ch = e.target.closest('.channel'); if(!ch) return;
         setActiveChannel(ch.dataset.id).catch(()=>{});
       });
 
-      setNameBtn.addEventListener('click', ()=>{
+      setNameBtn.addEventListener('click', async ()=>{
         let val = usernameInput.value.trim();
         if(!val) val = 'Guest' + Math.floor(Math.random()*9000 + 1000);
         username = val;
@@ -669,7 +616,9 @@
         usernameBox.style.display = 'none';
         usernameLocked.style.display = 'flex';
         usernameDisplay.textContent = username;
-        fetchPlayers().catch(()=>{});
+        // Upsert on API and refresh players
+        await upsertLocalPlayer();
+        await fetchPlayers();
         updateCharCountAndState();
       });
 
@@ -682,109 +631,107 @@
         setLocalTyping(false);
       });
 
-      messageInput.addEventListener('input', (e)=>{
-        if(messageInput.value.length > MAX_CHARS){
-          messageInput.value = messageInput.value.slice(0, MAX_CHARS);
-        }
+      messageInput.addEventListener('input', ()=>{
+        if(messageInput.value.length > MAX_CHARS) messageInput.value = messageInput.value.slice(0, MAX_CHARS);
         updateCharCountAndState();
-        // typing notifications
-        if(!isLocalTyping){
-          setLocalTyping(true);
-        }
+        if(!isLocalTyping) setLocalTyping(true);
         scheduleTypingStop();
       });
 
       messageInput.addEventListener('keydown', (e)=>{
-        if(e.key === 'Enter' && !e.shiftKey){
-          e.preventDefault();
-          if(!sendBtn.disabled) sendBtn.click();
-        }
+        if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); if(!sendBtn.disabled) sendBtn.click(); }
       });
 
-      nameColorInput.addEventListener('input', (e)=> {
+      nameColorInput.addEventListener('input', async (e)=>{
         nameColor = e.target.value;
         localStorage.setItem('notcord_nameColor', nameColor);
-        // update existing messages and players list
-        Array.from(document.querySelectorAll('.meta .name')).forEach(el => { if(el.textContent === username) el.style.color = nameColor; });
-        const youName = playersListEl.querySelector('.player.you .playerName');
-        if(youName) youName.style.color = nameColor;
+        // update local player's API record if we have id
+        if(localPlayerId){
+          const current = await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'GET', null);
+          if(current) await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', { ...current, nameColor });
+        }
+        // refresh players and messages UI
+        fetchPlayers().catch(()=>{});
+        // color our name in messages immediately
+        Array.from(document.querySelectorAll('.meta .name')).forEach(el=>{ if(el.textContent === username) el.style.color = nameColor; });
       });
-      resetNameColorBtn.addEventListener('click', ()=>{
-        nameColor = '#ffcc00';
-        nameColorInput.value = nameColor;
-        localStorage.setItem('notcord_nameColor', nameColor);
-      });
+      resetNameColorBtn.addEventListener('click', ()=>{ nameColor = '#ffcc00'; nameColorInput.value = nameColor; localStorage.setItem('notcord_nameColor', nameColor); });
 
-      themeColor1Input.addEventListener('input', (e)=> {
-        themeColor1 = e.target.value;
-        localStorage.setItem('notcord_theme1', themeColor1);
-        accentColor = themeColor1;
-        localStorage.setItem('notcord_accent', accentColor);
-        applyTheme();
-      });
-      resetTheme1Btn.addEventListener('click', ()=>{
-        themeColor1 = '#071226';
-        themeColor1Input.value = themeColor1;
-        localStorage.setItem('notcord_theme1', themeColor1);
-        applyTheme();
-      });
+      themeColor1Input.addEventListener('input', e=>{ themeColor1 = e.target.value; localStorage.setItem('notcord_theme1', themeColor1); accentColor = themeColor1; localStorage.setItem('notcord_accent', accentColor); applyTheme(); });
+      resetTheme1Btn.addEventListener('click', ()=>{ themeColor1 = '#071226'; themeColor1Input.value = themeColor1; localStorage.setItem('notcord_theme1', themeColor1); applyTheme(); });
+      themeColor2Input.addEventListener('input', e=>{ themeColor2 = e.target.value; localStorage.setItem('notcord_theme2', themeColor2); applyTheme(); });
+      resetTheme2Btn.addEventListener('click', ()=>{ themeColor2 = '#07101a'; themeColor2Input.value = themeColor2; localStorage.setItem('notcord_theme2', themeColor2); applyTheme(); });
 
-      themeColor2Input.addEventListener('input', (e)=> {
-        themeColor2 = e.target.value;
-        localStorage.setItem('notcord_theme2', themeColor2);
-        applyTheme();
-      });
-      resetTheme2Btn.addEventListener('click', ()=>{
-        themeColor2 = '#07101a';
-        themeColor2Input.value = themeColor2;
-        localStorage.setItem('notcord_theme2', themeColor2);
-        applyTheme();
-      });
+      // === Channel handling ===
+      async function setActiveChannel(id){
+        activeChannel = id;
+        apiBase = CHANNELS[id] || null;
+        localStorage.setItem('notcord_channel', id);
+        Array.from(channelsEl.children).forEach(ch => ch.classList.toggle('active', ch.dataset.id === id));
+        channelTitleEl.textContent = '# ' + id;
+        if(id === 'announcements'){ messageInput.disabled = true; messageInput.placeholder = 'Read-only channel'; sendBtn.disabled = true; charCountEl.style.opacity = 0.5; }
+        else { messageInput.disabled = false; messageInput.placeholder = 'Message (Shift+Enter for newline)'; charCountEl.style.opacity = 1; updateCharCountAndState(); }
+        if(polling) clearInterval(polling);
+        await fetchMessages();
+        scrollToBottom();
+        if(id !== 'announcements') polling = setInterval(fetchMessages, 4000);
+      }
 
       // === Initialization ===
       async function init(){
-        nameColor = localStorage.getItem('notcord_nameColor') || nameColor;
-        themeColor1 = localStorage.getItem('notcord_theme1') || themeColor1;
-        themeColor2 = localStorage.getItem('notcord_theme2') || themeColor2;
-        accentColor = localStorage.getItem('notcord_accent') || accentColor;
         applyTheme();
         initializeAppearanceInputs();
+        // restore local player id if any
+        localPlayerId = localStorage.getItem('notcord_playerId') || null;
 
         if(username){
           usernameBox.style.display = 'none';
           usernameLocked.style.display = 'flex';
           usernameDisplay.textContent = username;
+          // ensure API upsert to mark us online
+          await upsertLocalPlayer();
         } else {
           usernameBox.style.display = 'flex';
           usernameLocked.style.display = 'none';
         }
 
+        // load selected channel
         await setActiveChannel(activeChannel);
+        // initial players fetch and polling
         await fetchPlayers();
         if(playersPolling) clearInterval(playersPolling);
         playersPolling = setInterval(fetchPlayers, 5000);
 
-        // poll messages already started in setActiveChannel
         setStatus('Connected (polling every 4s)');
-
-        // typing cleanup loop
+        // typing cleanup loop & UI updater
         setInterval(cleanupTypingMap, 2000);
-
-        // update typing UI initially
-        updateTypingUI();
-
-        // keep scrolling to bottom on load
         setTimeout(scrollToBottom, 120);
       }
 
       init();
 
-      // cleanup
-      window.addEventListener('beforeunload', ()=> {
-        // remove our typing entry on unload
-        setLocalTyping(false);
-        if(polling) clearInterval(polling);
-        if(playersPolling) clearInterval(playersPolling);
+      // On unload mark local player offline if we created/updated it
+      window.addEventListener('beforeunload', (e) => {
+        // best effort: mark offline
+        try{
+          if(localPlayerId){
+            // synchronous navigator.sendBeacon fallback attempt
+            const payload = { id: localPlayerId, online: false, name: username, nameColor };
+            const url = `${PLAYERS_API}/${localPlayerId}`;
+            const data = JSON.stringify(payload);
+            if(navigator.sendBeacon){
+              navigator.sendBeacon(url, data);
+            } else {
+              // fetch can't be reliably synchronous; attempt async
+              fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: data });
+            }
+          }
+        }catch(err){}
+        // also remove our typing entry
+        try{
+          const map = readTypingMap();
+          if(map[activeChannel] && map[activeChannel][username]) { delete map[activeChannel][username]; writeTypingMap(map); }
+        }catch(e){}
       });
     })();
   </script>
