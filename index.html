@@ -8,7 +8,7 @@
     :root{
       --theme-1: #071226;
       --theme-2: #07101a;
-      --theme-3: #0b2233; /* chat bubble / logo third color */
+      --theme-3: #0b2233; /* theme3 used for logo, chat box and bubbles */
       --muted: #9aa4b2;
       --accent: #5865f2;
       --msg-bg: #111827;
@@ -22,51 +22,61 @@
       background:linear-gradient(180deg,var(--theme-1) 0%, var(--theme-2) 100%);
     }
 
-    .app { width:100%; height:100vh; display:grid; grid-template-columns:260px 1fr 240px; overflow:hidden; }
+    .app { width:100%; height:100vh; display:grid; grid-template-columns:260px 1fr 240px; gap:0; overflow:hidden; }
     .sidebar{ padding:14px; display:flex; flex-direction:column; gap:12px; height:100vh; overflow:auto; background:linear-gradient(180deg,var(--theme-1),var(--theme-2)); border-right:1px solid var(--border) }
-    .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px}
-    /* logo uses theme-3 as solid color for whole logo */
-    .brand .dot{
-      width:18px;height:18px;border-radius:50%;
-      background:var(--theme-3);
-      box-shadow:0 0 10px rgba(0,0,0,0.6);
-      flex-shrink:0;
-    }
-    .brand .name{
-      color:var(--theme-3);
-      font-weight:800;
-      font-size:18px;
-      letter-spacing:0.2px;
-    }
+
+    /* Logo: whole logo in theme-3 (not background) */
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700;font-size:18px}
+    .brand .dot{width:18px;height:18px;border-radius:50%;background:var(--theme-3);box-shadow:0 6px 20px rgba(11,34,51,0.35)}
+    .brand .name{color:var(--theme-3);font-weight:800;font-size:18px}
 
     .usernameBox{display:flex;gap:8px;align-items:center}
     .usernameBox input{flex:1;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:inherit;outline:none}
     .usernameBox button{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
     .usernameLocked{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);font-weight:600;overflow:hidden}
+
     .channels{margin-top:6px;display:flex;flex-direction:column;gap:6px}
     .channel{padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer;border:1px solid transparent;display:flex;justify-content:space-between;align-items:center}
     .channel:hover{background:rgba(255,255,255,0.01)}
     .channel.active{background:linear-gradient(90deg, rgba(88,101,242,0.12), rgba(88,101,242,0.02));color:var(--text);border-color:rgba(88,101,242,0.12)}
+
     .settings{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px solid var(--border)}
     .settings label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
     .settings input[type="color"]{width:48px;height:32px;padding:0;border:none;background:transparent;cursor:pointer}
     .settings .toggleBtn{padding:8px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer}
 
-    .chatPanel{display:flex;flex-direction:column;min-height:0; background:var(--theme-3);} /* whole chat area uses theme-3 */
-    .header{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px}
-    .header h2{margin:0;font-size:18px}
+    /* Chat column - keep page background unchanged; chat "box" uses theme-3 */
+    .chatPanel{display:flex;flex-direction:column;min-height:0;padding:12px}
+    .chatBox{
+      background:var(--theme-3);
+      border-radius:12px;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      box-shadow: 0 6px 28px rgba(2,6,23,0.6);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    .header{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;gap:12px;background:transparent}
+    .header h2{margin:0;font-size:18px;color:var(--text)}
     .header .spacer{flex:1}
     .header .right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
     .status{color:var(--muted);font-size:13px}
     .typing{color:var(--muted);font-size:12px;height:18px}
 
-    /* messages area kept visually distinct but inside theme-3 chatPanel */
-    .messages{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;min-height:0}
+    /* messages area (inside chatBox) */
+    .messages{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;min-height:0;background:transparent}
     .message{display:flex;gap:12px;align-items:flex-start;max-width:85%}
     .message.me{margin-left:auto;justify-content:flex-end}
-    /* now bubbles use theme-3 for non-me messages (whole chat box color) */
-    .bubble{background:var(--theme-3);padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;color:var(--text);word-break:break-word;box-shadow:0 6px 18px rgba(2,6,23,0.6);border-left:4px solid rgba(255,255,255,0.04)}
-    /* keep 'me' messages distinct */
+    /* chat bubbles: use theme-3 for normal bubbles; me messages remain distinct */
+    .bubble{
+      background:var(--theme-3); /* user's request: bubbles in theme-3 */
+      color:var(--text);
+      padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;word-break:break-word;
+      border-left:4px solid rgba(255,255,255,0.03);
+      box-shadow: 0 6px 18px rgba(2,6,23,0.5);
+    }
     .message.me .bubble{background:var(--me-bg);border-left-color:var(--accent);color:var(--text)}
     .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
     .meta .name{font-weight:700}
@@ -74,8 +84,8 @@
     .text{white-space:pre-wrap;color:inherit;font-size:15px;word-break:break-word;overflow-wrap:break-word}
     .privateTag{font-size:12px;color:#ffd980;margin-left:8px}
 
-    .inputArea{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
-    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid var(--border);color:inherit;outline:none}
+    .inputArea{padding:12px;border-top:1px solid rgba(255,255,255,0.04);display:flex;gap:8px;align-items:flex-end;background:transparent}
+    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);outline:none}
     .controls{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:120px}
     .charCount{font-size:12px;color:var(--muted)}
     .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
@@ -141,7 +151,7 @@
           </div>
         </label>
 
-        <label>Theme color 3 (chat & logo)
+        <label>Theme color 3 (logo, chat box & bubbles)
           <div style="display:flex;gap:8px;align-items:center">
             <input type="color" id="themeColor3" title="Theme color 3" />
             <div style="flex:1"></div>
@@ -156,22 +166,24 @@
     </aside>
 
     <section class="chatPanel">
-      <div class="header">
-        <h2 id="channelTitle"># general</h2>
-        <div class="spacer"></div>
-        <div class="right">
-          <div id="status" class="status">Connecting...</div>
-          <div id="typingIndicator" class="typing"></div>
+      <div class="chatBox" id="chatBox">
+        <div class="header">
+          <h2 id="channelTitle"># general</h2>
+          <div class="spacer"></div>
+          <div class="right">
+            <div id="status" class="status">Connecting...</div>
+            <div id="typingIndicator" class="typing"></div>
+          </div>
         </div>
-      </div>
 
-      <div class="messages" id="messages" role="log" aria-atomic="false"></div>
+        <div class="messages" id="messages" role="log" aria-atomic="false"></div>
 
-      <div class="inputArea" id="inputArea">
-        <textarea id="messageInput" placeholder="Message (Shift+Enter for newline)" maxlength="100"></textarea>
-        <div class="controls">
-          <div class="charCount" id="charCount">0 / 100</div>
-          <button id="sendBtn" class="sendBtn" disabled>Send</button>
+        <div class="inputArea" id="inputArea">
+          <textarea id="messageInput" placeholder="Message (Shift+Enter for newline)" maxlength="100"></textarea>
+          <div class="controls">
+            <div class="charCount" id="charCount">0 / 100</div>
+            <button id="sendBtn" class="sendBtn" disabled>Send</button>
+          </div>
         </div>
       </div>
     </section>
@@ -193,12 +205,6 @@
         games:   'https://68eeed86b06cc802829ba196.mockapi.io/gameschat'
       };
       const PLAYERS_API = 'https://68e839b2f2707e6128ca35e1.mockapi.io/players';
-
-      // Read-only announcements (editable in code)
-      const READ_ONLY_MESSAGES = [
-        { username: 'Admin', message: 'Welcome to notcord — check pinned notes here.', createdAt: new Date().toISOString(), nameColor: '#ff7a18' },
-        { username: 'Team',  message: 'Server maintenance scheduled: Sunday 02:00 UTC.', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(), nameColor: '#18a0ff' }
-      ];
 
       // DOM refs
       const channelsEl = document.getElementById('channels');
@@ -233,6 +239,7 @@
       let apiBase = CHANNELS[activeChannel] || null;
       let polling = null;
       let playersPolling = null;
+      let heartbeatInterval = null;
       let isSending = false;
       const MAX_CHARS = 100;
       const MAX_MESSAGES = 80;
@@ -243,11 +250,11 @@
       let isLocalTyping = false;
       let typingStopTimeout = null;
 
-      // auto-scroll state
+      // auto-scroll
       let autoScroll = true;
-      const AUTO_SCROLL_THRESHOLD = 60; // px from bottom considered "at bottom"
+      const AUTO_SCROLL_THRESHOLD = 60;
 
-      // user settings & player id
+      // user / player
       let username = localStorage.getItem('notcord_username') || '';
       let nameColor = localStorage.getItem('notcord_nameColor') || '#ffcc00';
       let themeColor1 = localStorage.getItem('notcord_theme1') || '#071226';
@@ -256,7 +263,11 @@
       let accentColor = localStorage.getItem('notcord_accent') || themeColor1;
       let localPlayerId = localStorage.getItem('notcord_playerId') || null;
 
-      // theme application
+      // heartbeat config: update lastSeen frequently while active
+      const HEARTBEAT_MS = 5000;
+      const PLAYER_OFFLINE_THRESHOLD_MS = 15000; // if lastSeen older than this, treat offline
+
+      // apply theme values
       function applyTheme(){
         document.documentElement.style.setProperty('--theme-1', themeColor1);
         document.documentElement.style.setProperty('--theme-2', themeColor2);
@@ -271,21 +282,18 @@
       }
 
       function setStatus(txt){ statusEl.textContent = txt; }
-
-      // helpers
       function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
       function formatTime(iso){
         try{ const d = new Date(iso); if(isNaN(d)) return ''; return d.toLocaleString([], { hour: '2-digit', minute: '2-digit' }); }catch(e){return ''}
       }
 
-      // message rendering & private logic
+      // message rendering (private visibility enforced)
       function detectNameColorFromMsg(msg){ return msg.nameColor || msg.color || msg.name_color || null; }
-
-      function renderMessage(msg, localUsername){
-        if(msg.privateTo && !(msg.privateTo === localUsername || (msg.username === localUsername))) return null;
+      function renderMessage(msg, localUser){
+        if(msg.privateTo && !(msg.privateTo === localUser || (msg.username === localUser))) return null;
         const container = document.createElement('div');
         const author = msg.username || msg.name || 'Unknown';
-        const isMe = author === localUsername;
+        const isMe = author === localUser;
         container.className = 'message' + (isMe ? ' me' : '');
         const bubble = document.createElement('div'); bubble.className = 'bubble';
         const meta = document.createElement('div'); meta.className = 'meta';
@@ -298,32 +306,25 @@
         timeEl.textContent = formatTime(msg.createdAt || msg.created_at || msg.timestamp || msg.time || '');
         meta.appendChild(nameEl);
         meta.appendChild(timeEl);
-        if(msg.privateTo) {
-          const tag = document.createElement('span');
-          tag.className = 'privateTag';
-          tag.textContent = msg.username === localUsername ? `to ${msg.privateTo}` : `private`;
+        if(msg.privateTo){
+          const tag = document.createElement('span'); tag.className = 'privateTag';
+          tag.textContent = msg.username === localUser ? `to ${msg.privateTo}` : `private`;
           meta.appendChild(tag);
         }
         const text = document.createElement('div'); text.className = 'text';
         text.textContent = msg.message || msg.text || msg.content || '';
-        bubble.appendChild(meta);
-        bubble.appendChild(text);
-        container.appendChild(bubble);
+        bubble.appendChild(meta); bubble.appendChild(text); container.appendChild(bubble);
         return container;
       }
 
-      function isAtBottom(){
-        return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - AUTO_SCROLL_THRESHOLD;
-      }
-      function scrollToBottom(){
-        requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight);
-      }
+      function isAtBottom(){ return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - AUTO_SCROLL_THRESHOLD; }
+      function scrollToBottom(){ requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight); }
 
-      // safeFetch helper
+      // safe fetch wrapper
       async function safeFetch(url, method='GET', body=null){
         try{
           const opts = { method, headers:{} };
-          if(body !== null){ opts.headers['Content-Type']='application/json'; opts.body = JSON.stringify(body); }
+          if(body !== null){ opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
           const r = await fetch(url, opts);
           if(!r.ok){ console.warn('safeFetch non-OK', r.status, url); return null; }
           if(r.status === 204) return null;
@@ -331,7 +332,7 @@
         }catch(e){ console.warn('safeFetch failed', e, url); return null; }
       }
 
-      // enforce message limit: delete oldest messages from API when > MAX_MESSAGES
+      // message limit enforcement
       async function enforceMessageLimit(){
         if(!apiBase) return;
         try{
@@ -353,12 +354,10 @@
               await safeFetch(`${apiBase}/${id}`, 'DELETE', null);
             }
           }
-        }catch(e){
-          console.warn('enforceMessageLimit failed', e);
-        }
+        }catch(e){ console.warn('enforceMessageLimit failed', e); }
       }
 
-      // Fetch messages with scroll preservation
+      // fetch messages with scroll preservation
       async function fetchMessagesFromApi(){
         if(!apiBase) return false;
         try{
@@ -397,49 +396,44 @@
         }
       }
 
+      // load read-only announcements
+      const READ_ONLY_MESSAGES = [
+        { username: 'Admin', message: 'Welcome to notcord — check pinned notes here.', createdAt: new Date().toISOString(), nameColor: '#ff7a18' },
+        { username: 'Team',  message: 'Server maintenance scheduled: Sunday 02:00 UTC.', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(), nameColor: '#18a0ff' }
+      ];
       async function loadReadOnlyMessages(){
         const data = Array.isArray(READ_ONLY_MESSAGES) ? READ_ONLY_MESSAGES.slice() : [];
         data.sort((a,b)=> (new Date(a.createdAt||0).getTime()) - (new Date(b.createdAt||0).getTime()));
         const prevScrollTop = messagesEl.scrollTop;
         const prevScrollHeight = messagesEl.scrollHeight;
         const wasAtBottom = isAtBottom();
-
         messagesEl.innerHTML = '';
         for(const msg of data){
           const el = renderMessage(msg, username);
           if(el) messagesEl.appendChild(el);
         }
-
         if(wasAtBottom || autoScroll) scrollToBottom();
         else messagesEl.scrollTop = Math.max(0, messagesEl.scrollHeight - prevScrollHeight + prevScrollTop);
-
         setStatus('Announcements — ' + data.length + ' items (read-only)');
         return true;
       }
 
       async function fetchMessages(){ if(activeChannel === 'announcements') return loadReadOnlyMessages(); return fetchMessagesFromApi(); }
 
-      // post: supports whisper: /w name text
+      // posting (supports /w whisper)
       async function postMessage(rawText){
         if(!rawText || !rawText.trim()) return;
         if(!username){ setStatus('Set username first'); return; }
         if(!apiBase){ setStatus('No channel selected'); return; }
         if(isSending) return;
-        isSending = true;
-        sendBtn.disabled = true;
+        isSending = true; sendBtn.disabled = true;
 
         let privateTo = null;
         let messageText = rawText.trim();
         if(messageText.toLowerCase().startsWith('/w ')){
           const match = messageText.match(/^\/w\s+(\S+)\s+([\s\S]+)$/i);
-          if(match){
-            privateTo = match[1];
-            messageText = match[2];
-            if(!messageText){ setStatus('Whisper requires text'); isSending=false; sendBtn.disabled=false; return; }
-          } else {
-            setStatus('Whisper format: /w name text');
-            isSending=false; sendBtn.disabled=false; return;
-          }
+          if(match){ privateTo = match[1]; messageText = match[2]; if(!messageText){ setStatus('Whisper requires text'); isSending=false; sendBtn.disabled=false; return; } }
+          else { setStatus('Whisper format: /w name text'); isSending=false; sendBtn.disabled=false; return; }
         }
 
         const payload = {
@@ -451,6 +445,7 @@
           isPrivate: !!privateTo
         };
 
+        // optimistic render for sender
         const optimisticEl = renderMessage(payload, username);
         if(optimisticEl) messagesEl.appendChild(optimisticEl);
         if(autoScroll) scrollToBottom();
@@ -470,14 +465,20 @@
           const timeEl = optimisticEl && optimisticEl.querySelector('.meta .time');
           if(timeEl) timeEl.textContent += ' (failed)';
         }finally{
-          isSending = false;
-          sendBtn.disabled = false;
+          isSending = false; sendBtn.disabled = false;
         }
       }
 
-      // Players handling
+      // players handling: online detection via lastSeen or online flag
       function normalizePlayerName(p){ return p.name || p.username || p.nick || p.displayName || (p.id?String(p.id):String(p)); }
       function detectPlayerOnline(p){
+        // prefer lastSeen recency
+        try{
+          if(p.lastSeen){
+            const last = Date.parse(p.lastSeen);
+            if(!isNaN(last) && (Date.now() - last) <= PLAYER_OFFLINE_THRESHOLD_MS) return true;
+          }
+        }catch(e){}
         if(typeof p.online === 'boolean') return p.online;
         if(typeof p.active === 'boolean') return p.active;
         if(typeof p.isOnline === 'boolean') return p.isOnline;
@@ -506,7 +507,7 @@
             const existsOnline = onlineList.some(x=>x.name===username);
             const existsOffline = offlineList.some(x=>x.name===username);
             if(!existsOnline && !existsOffline){
-              onlineList.unshift({name: username, raw:{name:username, online:true}, local:true});
+              onlineList.unshift({name: username, raw:{name:username, lastSeen: new Date().toISOString(), online:true}, local:true});
             }
           }
 
@@ -547,7 +548,7 @@
         }
       }
 
-      // Upsert local player
+      // upsert local player and set lastSeen online=true
       async function upsertLocalPlayer(){
         if(!username) return;
         try{
@@ -556,29 +557,44 @@
           const data = await res.json();
           if(!Array.isArray(data)) return;
           const found = data.find(p => normalizePlayerName(p) === username);
+          const nowISOString = new Date().toISOString();
           if(found){
             localPlayerId = found.id;
             localStorage.setItem('notcord_playerId', localPlayerId);
-            await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', {...found, name: username, online:true, nameColor});
+            await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', {...found, name: username, online:true, lastSeen: nowISOString, nameColor});
           } else {
-            const created = await safeFetch(PLAYERS_API, 'POST', { name: username, online:true, nameColor });
+            const created = await safeFetch(PLAYERS_API, 'POST', { name: username, online:true, lastSeen: nowISOString, nameColor });
             if(created && created.id){ localPlayerId = created.id; localStorage.setItem('notcord_playerId', localPlayerId); }
           }
         }catch(e){ console.warn('upsertLocalPlayer error', e); } finally { fetchPlayers().catch(()=>{}); }
       }
 
+      // set local player's online state and lastSeen (best-effort)
       async function setLocalPlayerOnlineState(isOnline){
         if(!localPlayerId) return;
         try{
           const cur = await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'GET', null);
           if(!cur) return;
-          const updated = { ...cur, online: !!isOnline, name: username || cur.name };
+          const updated = { ...cur, online: !!isOnline, name: username || cur.name, lastSeen: new Date().toISOString() };
           if(nameColor) updated.nameColor = nameColor;
           await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', updated);
         }catch(e){ console.warn('setLocalPlayerOnlineState', e); } finally { fetchPlayers().catch(()=>{}); }
       }
 
-      // Typing indicator (localStorage)
+      // heartbeat: update lastSeen periodically while focused
+      function startHeartbeat(){
+        stopHeartbeat();
+        if(!username || !localPlayerId) return;
+        heartbeatInterval = setInterval(async () => {
+          try{
+            const payload = { lastSeen: new Date().toISOString(), online: true, name: username, nameColor };
+            await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', payload);
+          }catch(e){ console.warn('heartbeat failed', e); }
+        }, HEARTBEAT_MS);
+      }
+      function stopHeartbeat(){ if(heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; } }
+
+      // typing indicator (localStorage)
       function readTypingMap(){ try{ return JSON.parse(localStorage.getItem(TYPING_KEY)||'{}'); }catch(e){ return {}; } }
       function writeTypingMap(m){ try{ localStorage.setItem(TYPING_KEY, JSON.stringify(m)); }catch(e){} }
       function setLocalTyping(active){
@@ -616,7 +632,7 @@
       }
       window.addEventListener('storage', (e)=> { if(e.key === TYPING_KEY) updateTypingUI(); });
 
-      // Input & UI helpers
+      // input helpers
       function updateCharCountAndState(){
         let val = messageInput.value || '';
         if(val.length > MAX_CHARS) messageInput.value = val.slice(0, MAX_CHARS);
@@ -626,16 +642,13 @@
       }
       function scheduleTypingStop(){
         if(typingStopTimeout) clearTimeout(typingStopTimeout);
-        typingStopTimeout = setTimeout(()=> {
-          setLocalTyping(false);
-          isLocalTyping = false;
-        }, 1500);
+        typingStopTimeout = setTimeout(()=> { setLocalTyping(false); isLocalTyping = false; }, 1500);
       }
 
-      // scroll handling
+      // scroll handling: preserve manual scroll
       messagesEl.addEventListener('scroll', () => { autoScroll = isAtBottom(); });
 
-      // Events
+      // events
       channelsEl.addEventListener('click', (e)=>{
         const ch = e.target.closest('.channel');
         if(!ch) return;
@@ -652,6 +665,7 @@
         usernameDisplay.textContent = username;
         await upsertLocalPlayer();
         await setLocalPlayerOnlineState(true);
+        startHeartbeat();
         await fetchPlayers();
         updateCharCountAndState();
       });
@@ -681,7 +695,7 @@
         localStorage.setItem('notcord_nameColor', nameColor);
         if(localPlayerId){
           const cur = await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'GET', null);
-          if(cur) await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', {...cur, nameColor});
+          if(cur) await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', {...cur, nameColor, lastSeen: new Date().toISOString(), online:true});
         }
         Array.from(document.querySelectorAll('.meta .name')).forEach(el => { if(el.textContent === username) el.style.color = nameColor; });
         fetchPlayers().catch(()=>{});
@@ -696,7 +710,7 @@
       themeColor3Input.addEventListener('input', (e)=>{ themeColor3 = e.target.value; localStorage.setItem('notcord_theme3', themeColor3); applyTheme(); });
       resetTheme3Btn.addEventListener('click', ()=>{ themeColor3 = '#0b2233'; themeColor3Input.value = themeColor3; localStorage.setItem('notcord_theme3', themeColor3); applyTheme(); });
 
-      // Channel switch logic
+      // channel switching
       async function setActiveChannel(id){
         activeChannel = id;
         apiBase = CHANNELS[id] || null;
@@ -710,24 +724,37 @@
         if(id !== 'announcements') polling = setInterval(fetchMessages, 4000);
       }
 
-      // Visibility & focus handling: mark online when focused, offline when hidden or closed
+      // visibility & focus handling - start/stop heartbeat and mark offline on hide
       document.addEventListener('visibilitychange', async () => {
         if(!username) return;
         if(document.hidden){
-          await setLocalPlayerOnlineState(false).catch(()=>{});
+          // mark offline and stop heartbeat
+          try{
+            // best-effort via sendBeacon
+            if(localPlayerId && navigator.sendBeacon){
+              const url = `${PLAYERS_API}/${localPlayerId}`;
+              const payload = JSON.stringify({ online:false, lastSeen: new Date().toISOString(), name: username, nameColor });
+              const blob = new Blob([payload], { type: 'application/json' });
+              navigator.sendBeacon(url, blob);
+            } else {
+              await setLocalPlayerOnlineState(false);
+            }
+          }catch(e){}
+          stopHeartbeat();
         } else {
-          await upsertLocalPlayer().catch(()=>{});
-          await setLocalPlayerOnlineState(true).catch(()=>{});
+          await upsertLocalPlayer();
+          startHeartbeat();
         }
       });
 
-      window.addEventListener('blur', async () => { if(!username) return; await setLocalPlayerOnlineState(false).catch(()=>{}); });
-      window.addEventListener('focus', async () => { if(!username) return; await upsertLocalPlayer().catch(()=>{}); await setLocalPlayerOnlineState(true).catch(()=>{}); });
+      window.addEventListener('blur', async () => { if(!username) return; try{ await setLocalPlayerOnlineState(false); }catch(e){} stopHeartbeat(); });
+      window.addEventListener('focus', async () => { if(!username) return; await upsertLocalPlayer(); startHeartbeat(); });
 
-      // Init
+      // initialization
       async function init(){
         applyTheme();
         initializeAppearanceInputs();
+
         localPlayerId = localStorage.getItem('notcord_playerId') || null;
 
         if(username){
@@ -735,7 +762,7 @@
           usernameLocked.style.display = 'flex';
           usernameDisplay.textContent = username;
           await upsertLocalPlayer();
-          await setLocalPlayerOnlineState(true);
+          startHeartbeat();
         } else {
           usernameBox.style.display = 'flex';
           usernameLocked.style.display = 'none';
@@ -746,7 +773,9 @@
         if(playersPolling) clearInterval(playersPolling);
         playersPolling = setInterval(fetchPlayers, 5000);
 
+        // message limit enforcement periodic
         setInterval(() => { if(apiBase) enforceMessageLimit(); }, 60 * 1000);
+
         setStatus('Connected (polling every 4s)');
         setInterval(cleanupTypingMap, 2000);
         updateTypingUI();
@@ -754,23 +783,27 @@
       }
       init();
 
-      // Before unload: mark offline & clear typing
+      // Before unload: mark offline via sendBeacon first; fallback to async fetch
       window.addEventListener('beforeunload', ()=>{
         try{
           if(localPlayerId){
-            const payload = JSON.stringify({ name: username, online:false, nameColor });
             const url = `${PLAYERS_API}/${localPlayerId}`;
+            const payload = JSON.stringify({ name: username, online:false, lastSeen: new Date().toISOString(), nameColor });
             if(navigator.sendBeacon){
-              navigator.sendBeacon(url, payload);
+              const blob = new Blob([payload], { type: 'application/json' });
+              navigator.sendBeacon(url, blob);
             } else {
+              // best-effort async update
               fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: payload }).catch(()=>{});
             }
           }
         }catch(e){}
+        // remove typing entry
         try{
-          const map = readTypingMap();
-          if(map[activeChannel] && map[activeChannel][username]) { delete map[activeChannel][username]; writeTypingMap(map); }
+          const map = JSON.parse(localStorage.getItem(TYPING_KEY)||'{}');
+          if(map[activeChannel] && map[activeChannel][username]) { delete map[activeChannel][username]; localStorage.setItem(TYPING_KEY, JSON.stringify(map)); }
         }catch(e){}
+        stopHeartbeat();
       });
     })();
   </script>
