@@ -22,7 +22,6 @@
       background:linear-gradient(180deg,var(--theme-1) 0%, var(--theme-2) 100%);
     }
 
-    /* layout: left sidebar, main, right players */
     .app {
       width:100%;
       height:100vh;
@@ -33,7 +32,7 @@
       align-items:stretch;
     }
 
-    /* Sidebar (left) - now uses theme gradient */
+    /* Left sidebar */
     .sidebar{
       background: linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.02)), linear-gradient(180deg,var(--theme-1),var(--theme-2));
       border-right:1px solid var(--border);
@@ -45,8 +44,24 @@
       overflow:auto;
       flex-shrink:0;
     }
+
     .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px;white-space:nowrap}
-    .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(88,101,242,0.22)}
+    /* dot uses the two theme colors */
+    .brand .dot{
+      width:12px;height:12px;border-radius:50%;
+      background:linear-gradient(135deg,var(--theme-1),var(--theme-2));
+      box-shadow:0 0 8px rgba(0,0,0,0.6), 0 0 18px rgba(86,101,242,0.15);
+      flex-shrink:0;
+    }
+    /* text draws gradient from theme colors */
+    .brand .name{
+      background:linear-gradient(90deg,var(--theme-1),var(--theme-2));
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      font-weight:800;
+      font-size:18px;
+      letter-spacing:0.2px;
+    }
+
     .usernameBox{display:flex;gap:8px;align-items:center}
     .usernameBox input{flex:1;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:inherit;outline:none;min-width:0}
     .usernameBox button{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
@@ -57,6 +72,7 @@
     .channel{padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer;border:1px solid transparent;display:flex;justify-content:space-between;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .channel:hover{background:rgba(255,255,255,0.01)}
     .channel.active{background:linear-gradient(90deg, rgba(88,101,242,0.12), rgba(88,101,242,0.02));color:var(--text);border-color:rgba(88,101,242,0.12)}
+    .channel .lock{font-size:12px;color:var(--muted);margin-left:8px}
 
     .settings{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px solid var(--border)}
     .settings label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
@@ -85,7 +101,7 @@
     .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
     .sendBtn:disabled{opacity:0.6;cursor:default}
 
-    /* Right players panel - uses theme gradient */
+    /* Right players panel */
     .playersPanel{
       background: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02)), linear-gradient(180deg,var(--theme-1),var(--theme-2));
       border-left:1px solid var(--border);
@@ -117,7 +133,10 @@
 <body>
   <div class="app" id="app">
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><div class="dot" aria-hidden></div>notcord</div>
+      <div class="brand">
+        <div class="dot" aria-hidden></div>
+        <div class="name">notcord</div>
+      </div>
 
       <div id="usernameSection">
         <div class="usernameBox" id="usernameBox">
@@ -133,6 +152,8 @@
         <div class="channel active" data-id="general" role="button"># general</div>
         <div class="channel" data-id="school" role="button"># school</div>
         <div class="channel" data-id="games" role="button"># games</div>
+        <!-- read-only channel; edit READ_ONLY_MESSAGES in the JS below to change its contents -->
+        <div class="channel" data-id="announcements" role="button"># announcements <span class="lock">🔒</span></div>
       </div>
 
       <div class="settings" aria-label="Appearance settings">
@@ -176,7 +197,7 @@
 
       <div class="messages" id="messages" role="log" aria-atomic="false"></div>
 
-      <div class="inputArea">
+      <div class="inputArea" id="inputArea">
         <textarea id="messageInput" placeholder="Message (Shift+Enter for newline)" maxlength="100"></textarea>
         <div class="controls">
           <div class="charCount" id="charCount">0 / 100</div>
@@ -195,15 +216,24 @@
 
   <script>
     (function(){
-      // API endpoints
+      // Channel endpoints (APIs)
       const CHANNELS = {
         general: 'https://68e839b2f2707e6128ca35e1.mockapi.io/chat',
         school:  'https://68eeed86b06cc802829ba196.mockapi.io/schoolchat',
         games:   'https://68eeed86b06cc802829ba196.mockapi.io/gameschat'
+        // announcements intentionally omitted to make it read-only and editable via code
       };
       const PLAYERS_API = 'https://68e839b2f2707e6128ca35e1.mockapi.io/players';
 
-      // DOM
+      // READ-ONLY channel content:
+      // Edit this array in the code to change what shows in #announcements.
+      // Each item should be an object: { username: 'Author', message: 'Text', createdAt: 'ISO string', nameColor: '#hex' (optional) }
+      const READ_ONLY_MESSAGES = [
+        { username: 'Admin', message: 'Welcome to notcord — check pinned notes here.', createdAt: new Date().toISOString(), nameColor: '#ff7a18' },
+        { username: 'Team',  message: 'Server maintenance scheduled: Sunday 02:00 UTC.', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(), nameColor: '#18a0ff' }
+      ];
+
+      // DOM references
       const rootEl = document.documentElement;
       const channelsEl = document.getElementById('channels');
       const channelTitleEl = document.getElementById('channelTitle');
@@ -212,6 +242,7 @@
       const messageInput = document.getElementById('messageInput');
       const sendBtn = document.getElementById('sendBtn');
       const charCountEl = document.getElementById('charCount');
+      const inputArea = document.getElementById('inputArea');
 
       const usernameBox = document.getElementById('usernameBox');
       const usernameInput = document.getElementById('usernameInput');
@@ -231,7 +262,7 @@
 
       // state
       let activeChannel = localStorage.getItem('notcord_channel') || 'general';
-      let apiBase = CHANNELS[activeChannel];
+      let apiBase = CHANNELS[activeChannel] || null;
       let polling = null;
       let playersPolling = null;
       let isSending = false;
@@ -244,11 +275,12 @@
       let themeColor2 = localStorage.getItem('notcord_theme2') || '#07101a';
       let accentColor = localStorage.getItem('notcord_accent') || themeColor1;
 
-      // apply theme (two color gradient)
+      // theme application
       function applyTheme(){
         document.documentElement.style.setProperty('--theme-1', themeColor1);
         document.documentElement.style.setProperty('--theme-2', themeColor2);
         document.documentElement.style.setProperty('--accent', accentColor || themeColor1);
+        // Update dot gradient immediately (CSS variables handle it)
       }
 
       function initializeAppearanceInputs(){
@@ -261,7 +293,7 @@
         statusEl.textContent = txt;
       }
 
-      // rendering messages
+      // message rendering (respects message-provided color)
       function detectNameColorFromMsg(msg){
         return msg.nameColor || msg.color || msg.name_color || msg.colorHex || msg.colour || null;
       }
@@ -317,8 +349,8 @@
         requestAnimationFrame(()=> { messagesEl.scrollTop = messagesEl.scrollHeight; });
       }
 
-      // fetch messages
-      async function fetchMessages(){
+      // fetch messages from API (for writable channels)
+      async function fetchMessagesFromApi(){
         if(!apiBase) return false;
         try{
           const res = await fetch(apiBase);
@@ -349,7 +381,35 @@
         }
       }
 
-      // post message (includes nameColor so others can render color)
+      // load read-only messages from the local array
+      async function loadReadOnlyMessages(){
+        // read-only messages come from READ_ONLY_MESSAGES; they are editable in this file
+        // clone and sort by createdAt
+        const data = Array.isArray(READ_ONLY_MESSAGES) ? READ_ONLY_MESSAGES.slice() : [];
+        data.sort((a,b) => {
+          const ta = new Date(a.createdAt || 0).getTime() || 0;
+          const tb = new Date(b.createdAt || 0).getTime() || 0;
+          return ta - tb;
+        });
+        messagesEl.innerHTML = '';
+        for(const msg of data){
+          const author = msg.username || msg.name || msg.author || '';
+          const isMe = (author === username);
+          const el = renderMessage(msg, isMe);
+          messagesEl.appendChild(el);
+        }
+        scrollToBottom();
+        setStatus('Announcements — ' + data.length + ' items (read-only)');
+        return true;
+      }
+
+      // unified fetch wrapper depending on active channel
+      async function fetchMessages(){
+        if(activeChannel === 'announcements') return loadReadOnlyMessages();
+        return fetchMessagesFromApi();
+      }
+
+      // post message (includes nameColor so others see it)
       async function postMessage(text){
         if(!text || !text.trim()) return;
         if(!username){ setStatus('Set username first'); return; }
@@ -365,6 +425,7 @@
           nameColor: nameColor
         };
 
+        // optimistic UI
         const optimisticEl = renderMessage(payload, true);
         messagesEl.appendChild(optimisticEl);
         scrollToBottom();
@@ -388,38 +449,53 @@
         }
       }
 
-      // channels
+      // set active channel
       async function setActiveChannel(id){
         activeChannel = id;
-        apiBase = CHANNELS[id];
+        apiBase = CHANNELS[id] || null;
         localStorage.setItem('notcord_channel', id);
         Array.from(channelsEl.children).forEach(ch => ch.classList.toggle('active', ch.dataset.id === id));
         channelTitleEl.textContent = '# ' + id;
+
+        // toggle input availability for read-only channel
+        if(id === 'announcements'){
+          messageInput.disabled = true;
+          messageInput.placeholder = 'Read-only channel';
+          sendBtn.disabled = true;
+          charCountEl.style.opacity = 0.5;
+        } else {
+          messageInput.disabled = false;
+          messageInput.placeholder = 'Message (Shift+Enter for newline)';
+          updateCharCountAndState();
+          charCountEl.style.opacity = 1;
+        }
+
         if(polling) clearInterval(polling);
         await fetchMessages();
         scrollToBottom();
-        polling = setInterval(fetchMessages, 4000);
+        // poll only for writable channels (announcements is static)
+        if(id !== 'announcements') polling = setInterval(fetchMessages, 4000);
       }
 
-      // username logic (set once)
+      // username logic: set once
       function lockUsernameUI(){
         usernameBox.style.display = 'none';
         usernameLocked.style.display = 'flex';
         usernameDisplay.textContent = username;
-        // update players panel immediately
-        injectLocalPlayerIntoPlayers();
+        // reflect in players panel
+        fetchPlayers().catch(()=>{});
       }
 
-      // appearance
+      // appearance functions
       function applyNameColor(c){
         nameColor = c;
         localStorage.setItem('notcord_nameColor', nameColor);
         Array.from(document.querySelectorAll('.meta .name')).forEach(el=>{
           if(el.textContent === username) el.style.color = nameColor;
         });
-        // update players list color for local user
-        const youEl = document.querySelector('.player.you span.playerName');
-        if(youEl) youEl.style.color = nameColor;
+        // color local player's name in players panel
+        const you = playersListEl.querySelector('.player.you .playerName');
+        if(you) you.style.color = nameColor;
       }
 
       function applyThemeColor1(c){
@@ -435,7 +511,7 @@
         applyTheme();
       }
 
-      // players panel helpers
+      // players handling (reads PLAYERS_API and injects local user)
       function normalizePlayerName(p){
         return p.name || p.username || p.nick || p.displayName || p.id || String(p);
       }
@@ -448,45 +524,6 @@
         return false;
       }
 
-      // Insert or update local player in playersList display (ensures local user shows even if not present in API)
-      function injectLocalPlayerIntoPlayers(onlineArr, offlineArr){
-        // If arrays passed, modify them; otherwise adjust DOM directly
-        if(Array.isArray(onlineArr) && Array.isArray(offlineArr)){
-          // remove local if present in offlineArr
-          const name = username;
-          // remove duplicates
-          for(let i = offlineArr.length-1; i>=0; i--){
-            if(offlineArr[i].name === name) offlineArr.splice(i,1);
-          }
-          // ensure local is in onlineArr
-          const exists = onlineArr.some(p => p.name === name);
-          if(!exists) onlineArr.unshift({name, raw:{}, local:true});
-          return;
-        }
-
-        // DOM update: find if local exists; if not, add to top of online section
-        if(!username) return;
-        const youSelector = '.player.you';
-        const existing = playersListEl.querySelector(youSelector);
-        if(existing) return; // already present
-        // find first header "Online (...)" element to insert after
-        const onlineHeader = Array.from(playersListEl.children).find(el => el.textContent && el.textContent.toLowerCase().startsWith('online'));
-        const item = document.createElement('div');
-        item.className = 'player online you';
-        const spanName = `<span style="font-weight:600" class="playerName">${escapeHtml(username)}</span>`;
-        item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span>${spanName} <span style="margin-left:8px;font-size:12px;color:var(--muted)">(you)</span></div><div style="font-size:12px;color:var(--muted)">online</div>`;
-        // color local name
-        const tmp = document.createElement('div'); tmp.innerHTML = item.innerHTML;
-        const nameSpan = tmp.querySelector('.playerName');
-        if(nameSpan) nameSpan.style.color = nameColor;
-        item.innerHTML = tmp.innerHTML;
-        if(onlineHeader && onlineHeader.nextSibling){
-          playersListEl.insertBefore(item, onlineHeader.nextSibling);
-        } else {
-          playersListEl.insertBefore(item, playersListEl.firstChild);
-        }
-      }
-
       async function fetchPlayers(){
         try{
           const res = await fetch(PLAYERS_API);
@@ -495,7 +532,7 @@
           if(!Array.isArray(data)){
             playersStatusEl.textContent = 'No players data';
             playersListEl.innerHTML = '';
-            injectLocalPlayerIntoPlayers(); // still show local if set
+            injectLocalPlayerIntoPlayers();
             return;
           }
 
@@ -508,7 +545,7 @@
             else offline.push({name, raw:p});
           }
 
-          // ensure local user appears in online list
+          // ensure local user appears online if they set a name
           if(username){
             const existsOnline = online.some(p=>p.name === username);
             const existsOffline = offline.some(p=>p.name === username);
@@ -519,7 +556,6 @@
             }
           }
 
-          // render DOM
           playersListEl.innerHTML = '';
           const headerOnline = document.createElement('div');
           headerOnline.style.fontSize = '13px';
@@ -533,7 +569,6 @@
             const displayName = escapeHtml(p.name);
             const youLabel = p.local ? ' <span style="margin-left:6px;font-size:12px;color:var(--muted)">(you)</span>' : '';
             item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span class="playerName" style="font-weight:600">${displayName}</span>${youLabel}</div><div style="font-size:12px;color:var(--muted)">online</div>`;
-            // color player's name if available in raw (some APIs may include color) or color local user
             const nameSpan = item.querySelector('.playerName');
             if(p.raw && (p.raw.nameColor || p.raw.color)) {
               nameSpan.style.color = p.raw.nameColor || p.raw.color;
@@ -562,31 +597,39 @@
           }
 
           playersStatusEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
-
-          // make sure local user is visible and colored (in case it wasn't provided by API)
-          if(username) {
-            const youEl = playersListEl.querySelector('.player.you .playerName, .player.you');
-            if(!youEl) injectLocalPlayerIntoPlayers();
-            else {
-              const nameSpan = playersListEl.querySelector('.player.you .playerName');
-              if(nameSpan) nameSpan.style.color = nameColor;
-            }
-          }
         }catch(err){
           console.error(err);
           playersStatusEl.textContent = 'Error loading players';
-          // still show local user if set
           playersListEl.innerHTML = '';
           injectLocalPlayerIntoPlayers();
         }
       }
 
-      // helpers
+      // ensure local user shows in players panel if set
+      function injectLocalPlayerIntoPlayers(){
+        if(!username) return;
+        // if already present, color name properly and return
+        const youNameEl = playersListEl.querySelector('.player.you .playerName');
+        if(youNameEl){
+          youNameEl.style.color = nameColor;
+          return;
+        }
+        // otherwise, prepend a local-you entry under online header if present
+        const onlineHeader = Array.from(playersListEl.children).find(el => el.textContent && el.textContent.toLowerCase().startsWith('online'));
+        const item = document.createElement('div');
+        item.className = 'player online you';
+        item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span class="playerName" style="font-weight:600">${escapeHtml(username)}</span> <span style="margin-left:6px;font-size:12px;color:var(--muted)">(you)</span></div><div style="font-size:12px;color:var(--muted)">online</div>`;
+        const nameSpan = item.querySelector('.playerName');
+        if(nameSpan) nameSpan.style.color = nameColor;
+        if(onlineHeader && onlineHeader.nextSibling) playersListEl.insertBefore(item, onlineHeader.nextSibling);
+        else playersListEl.insertBefore(item, playersListEl.firstChild);
+      }
+
       function escapeHtml(s){
         return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       }
 
-      // inputs & controls
+      // input helpers
       function updateCharCountAndState(){
         let val = messageInput.value || '';
         if(val.length > MAX_CHARS){
@@ -594,7 +637,7 @@
           val = messageInput.value;
         }
         charCountEl.textContent = `${val.length} / ${MAX_CHARS}`;
-        const canSend = username && val.trim().length > 0;
+        const canSend = username && val.trim().length > 0 && activeChannel !== 'announcements';
         sendBtn.disabled = !canSend || isSending;
       }
 
@@ -612,8 +655,7 @@
         localStorage.setItem('notcord_username', username);
         lockUsernameUI();
         setStatus('Username set: ' + username);
-        // update players immediately
-        fetchPlayers();
+        fetchPlayers().catch(()=>{});
         updateCharCountAndState();
       });
 
@@ -641,8 +683,7 @@
 
       nameColorInput.addEventListener('input', (e)=> {
         applyNameColor(e.target.value);
-        // send a presence update to players API is optional; we just update local display
-        fetchPlayers();
+        fetchPlayers().catch(()=>{});
       });
       resetNameColorBtn.addEventListener('click', ()=>{
         applyNameColor('#ffcc00');
@@ -651,7 +692,6 @@
 
       themeColor1Input.addEventListener('input', (e)=> {
         applyThemeColor1(e.target.value);
-        // update panels immediately
       });
       resetTheme1Btn.addEventListener('click', ()=>{
         applyThemeColor1('#071226');
@@ -666,7 +706,7 @@
         themeColor2Input.value = '#07101a';
       });
 
-      // init
+      // initialization
       async function init(){
         // load saved settings
         nameColor = localStorage.getItem('notcord_nameColor') || nameColor;
@@ -683,7 +723,7 @@
           usernameLocked.style.display = 'none';
         }
 
-        // start channel
+        // load selected channel, ensure bottom
         await setActiveChannel(activeChannel);
 
         // players
@@ -692,14 +732,13 @@
         playersPolling = setInterval(fetchPlayers, 5000);
 
         setStatus('Connected (polling every 4s)');
-
-        // ensure bottom after layout
+        // ensure scroll to bottom on load
         setTimeout(scrollToBottom, 120);
       }
 
       init();
 
-      // cleanup on unload
+      // cleanup
       window.addEventListener('beforeunload', ()=> {
         if(polling) clearInterval(polling);
         if(playersPolling) clearInterval(playersPolling);
