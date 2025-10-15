@@ -6,9 +6,9 @@
   <title>notcord — multi-channel</title>
   <style>
     :root{
-      --bg-0: #071226;
-      --bg-1: #07101a;
-      --panel: #0b1220;
+      --theme-1: #071226;
+      --theme-2: #07101a;
+      --panel: rgba(11,18,32,0.95);
       --muted: #9aa4b2;
       --accent: #5865f2;
       --msg-bg: #111827;
@@ -16,30 +16,24 @@
       --border: rgba(255,255,255,0.06);
       --text: #e6eef6;
     }
-    :root[data-theme="light"]{
-      --bg-0: #f3f7fb;
-      --bg-1: #eef4fb;
-      --panel: #ffffff;
-      --muted: #556270;
-      --msg-bg: #f4f7fb;
-      --me-bg: #e8eefc;
-      --border: rgba(0,0,0,0.06);
-      --text: #0b1220;
-    }
 
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;color:var(--text);background:linear-gradient(180deg,var(--bg-0) 0%, var(--bg-1) 100%);}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;color:var(--text);
+      background:linear-gradient(180deg,var(--theme-1) 0%, var(--theme-2) 100%);
+    }
+
+    /* layout: left sidebar, main, right players */
     .app {
       width:100%;
       height:100vh;
       display:grid;
-      grid-template-columns:260px 1fr;
+      grid-template-columns:260px 1fr 220px;
       gap:0;
       overflow:hidden;
       align-items:stretch;
     }
 
-    /* Sidebar: fixed height, independent of message size */
+    /* Sidebar (left) */
     .sidebar{
       background:var(--panel);
       border-right:1px solid var(--border);
@@ -47,32 +41,20 @@
       display:flex;
       flex-direction:column;
       gap:12px;
-      height:100vh;             /* enforce full viewport height */
-      overflow:auto;            /* independent scrolling if content grows */
+      height:100vh;
+      overflow:auto;
       flex-shrink:0;
     }
     .brand{display:flex;gap:10px;align-items:center;font-weight:700;color:var(--accent);font-size:18px;white-space:nowrap}
     .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(88,101,242,0.22)}
-    .usernameBox{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
-    .usernameBox input{
-      flex:1;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:inherit;outline:none;
-      min-width:0; /* allow shrinking */
-    }
-    .usernameBox button{
-      padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;
-    }
+    .usernameBox{display:flex;gap:8px;align-items:center}
+    .usernameBox input{flex:1;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:inherit;outline:none;min-width:0}
+    .usernameBox button{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
     .usernameLocked{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);font-weight:600;overflow:hidden}
     .usernameLocked #usernameDisplay{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
 
-    .channels{margin-top:6px;display:flex;flex-direction:column;gap:6px;overflow:auto}
-    .channel{
-      padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer;border:1px solid transparent;
-      display:flex;justify-content:space-between;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    }
+    .channels{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+    .channel{padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer;border:1px solid transparent;display:flex;justify-content:space-between;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .channel:hover{background:rgba(255,255,255,0.01)}
     .channel.active{background:linear-gradient(90deg, rgba(88,101,242,0.12), rgba(88,101,242,0.02));color:var(--text);border-color:rgba(88,101,242,0.12)}
 
@@ -81,19 +63,14 @@
     .settings input[type="color"]{width:48px;height:32px;padding:0;border:none;background:transparent;cursor:pointer}
     .settings .toggleBtn{padding:8px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer}
 
-    /* Chat area */
-    .chatPanel{display:flex;flex-direction:column;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);position:relative;min-height:0}
-    .header{
-      padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;
-    }
+    /* Main chat */
+    .chatPanel{display:flex;flex-direction:column;background:transparent;position:relative;min-height:0}
+    .header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
     .header h2{margin:0;font-size:18px}
     .header .spacer{flex:1}
-    .messages{
-      flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;
-      min-height:0; /* allows proper flex scrolling inside grid */
-    }
-    .message{display:flex;gap:12px;align-items:flex-start;max-width:85%;}
-    .message.me{margin-left:auto;justify-content:flex-end;}
+    .messages{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;min-height:0}
+    .message{display:flex;gap:12px;align-items:flex-start;max-width:85%}
+    .message.me{margin-left:auto;justify-content:flex-end}
     .bubble{background:var(--msg-bg);padding:10px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);display:flex;flex-direction:column;gap:6px;color:#dbe8ff;word-break:break-word}
     .message.me .bubble{background:var(--me-bg)}
     .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
@@ -108,20 +85,39 @@
     .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
     .sendBtn:disabled{opacity:0.6;cursor:default}
 
-    @media (max-width:860px){
-      .app{grid-template-columns:200px 1fr}
-      .sidebar{padding:10px}
+    /* Right players panel */
+    .playersPanel{
+      background:var(--panel);
+      border-left:1px solid var(--border);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      height:100vh;
+      overflow:auto;
+      flex-shrink:0;
+    }
+    .playersPanel h3{margin:0;font-size:15px;color:var(--muted)}
+    .playersList{display:flex;flex-direction:column;gap:6px;overflow:auto}
+    .player{display:flex;align-items:center;justify-content:space-between;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01);border:1px solid transparent;color:var(--text)}
+    .player.offline{opacity:0.6}
+    .player .statusDot{width:10px;height:10px;border-radius:50%;margin-right:8px;flex-shrink:0}
+    .player.online .statusDot{background:#39d353;box-shadow:0 0 8px rgba(57,211,83,0.12)}
+    .player.offline .statusDot{background:#a0a0a0}
+
+    @media (max-width:980px){
+      .app{grid-template-columns:220px 1fr 180px}
     }
     @media (max-width:720px){
       .app{grid-template-columns:1fr}
-      .sidebar{display:none}
+      .sidebar,.playersPanel{display:none}
     }
   </style>
 </head>
 <body>
   <div class="app" id="app">
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><div class="dot"></div>notcord</div>
+      <div class="brand"><div class="dot" aria-hidden></div>notcord</div>
 
       <div id="usernameSection">
         <div class="usernameBox" id="usernameBox">
@@ -132,8 +128,6 @@
           <div id="usernameDisplay"></div>
         </div>
       </div>
-
-      <div style="height:6px"></div>
 
       <div class="channels" id="channels">
         <div class="channel active" data-id="general" role="button"># general</div>
@@ -152,20 +146,20 @@
         </label>
 
         <label>
-          Accent color
+          Theme color 1
           <div style="display:flex;gap:8px;align-items:center">
-            <input type="color" id="accentColor" title="Accent color" />
+            <input type="color" id="themeColor1" title="Theme color 1" />
             <div style="flex:1"></div>
-            <button id="resetAccent" class="toggleBtn">Reset</button>
+            <button id="resetTheme1" class="toggleBtn">Reset</button>
           </div>
         </label>
 
         <label>
-          Theme
+          Theme color 2
           <div style="display:flex;gap:8px;align-items:center">
-            <button id="themeToggle" class="toggleBtn">Toggle light/dark</button>
+            <input type="color" id="themeColor2" title="Theme color 2" />
             <div style="flex:1"></div>
-            <button id="resetTheme" class="toggleBtn">Reset</button>
+            <button id="resetTheme2" class="toggleBtn">Reset</button>
           </div>
         </label>
 
@@ -190,20 +184,27 @@
         </div>
       </div>
     </section>
+
+    <aside class="playersPanel" id="playersPanel">
+      <h3>Players</h3>
+      <div id="playersStatus" style="font-size:13px;color:var(--muted)">Loading...</div>
+      <div style="height:6px"></div>
+      <div class="playersList" id="playersList" aria-live="polite"></div>
+    </aside>
   </div>
 
   <script>
     (function(){
-      // Channel -> API mapping
+      // API endpoints
       const CHANNELS = {
         general: 'https://68e839b2f2707e6128ca35e1.mockapi.io/chat',
         school:  'https://68eeed86b06cc802829ba196.mockapi.io/schoolchat',
         games:   'https://68eeed86b06cc802829ba196.mockapi.io/gameschat'
       };
+      const PLAYERS_API = 'https://68e839b2f2707e6128ca35e1.mockapi.io/players';
 
       // DOM
       const rootEl = document.documentElement;
-      const appEl = document.getElementById('app');
       const channelsEl = document.getElementById('channels');
       const channelTitleEl = document.getElementById('channelTitle');
       const messagesEl = document.getElementById('messages');
@@ -219,38 +220,52 @@
       const usernameDisplay = document.getElementById('usernameDisplay');
 
       const nameColorInput = document.getElementById('nameColor');
-      const accentColorInput = document.getElementById('accentColor');
+      const themeColor1Input = document.getElementById('themeColor1');
+      const themeColor2Input = document.getElementById('themeColor2');
       const resetNameColorBtn = document.getElementById('resetNameColor');
-      const resetAccentBtn = document.getElementById('resetAccent');
-      const themeToggleBtn = document.getElementById('themeToggle');
-      const resetThemeBtn = document.getElementById('resetTheme');
+      const resetTheme1Btn = document.getElementById('resetTheme1');
+      const resetTheme2Btn = document.getElementById('resetTheme2');
+
+      const playersListEl = document.getElementById('playersList');
+      const playersStatusEl = document.getElementById('playersStatus');
 
       // state
       let activeChannel = localStorage.getItem('notcord_channel') || 'general';
       let apiBase = CHANNELS[activeChannel];
       let polling = null;
+      let playersPolling = null;
       let isSending = false;
+      const MAX_CHARS = 100;
 
       // user settings
       let username = localStorage.getItem('notcord_username') || '';
       let nameColor = localStorage.getItem('notcord_nameColor') || '#ffcc00';
-      let accentColor = localStorage.getItem('notcord_accent') || '#5865f2';
-      let theme = localStorage.getItem('notcord_theme') || 'dark'; // 'dark' or 'light'
-      const MAX_CHARS = 100;
+      let themeColor1 = localStorage.getItem('notcord_theme1') || '#071226';
+      let themeColor2 = localStorage.getItem('notcord_theme2') || '#07101a';
+      // accent uses themeColor1 by default
+      let accentColor = localStorage.getItem('notcord_accent') || themeColor1;
 
-      // initial UI state
+      // apply theme (two color gradient)
       function applyTheme(){
-        rootEl.setAttribute('data-theme', theme);
-        document.documentElement.style.setProperty('--accent', accentColor);
+        document.documentElement.style.setProperty('--theme-1', themeColor1);
+        document.documentElement.style.setProperty('--theme-2', themeColor2);
+        document.documentElement.style.setProperty('--accent', accentColor || themeColor1);
       }
 
       function initializeAppearanceInputs(){
         nameColorInput.value = nameColor;
-        accentColorInput.value = accentColor;
+        themeColor1Input.value = themeColor1;
+        themeColor2Input.value = themeColor2;
       }
 
       function setStatus(txt){
         statusEl.textContent = txt;
+      }
+
+      // rendering messages
+      function detectNameColorFromMsg(msg){
+        // try common field names
+        return msg.nameColor || msg.color || msg.name_color || msg.colorHex || msg.colour || null;
       }
 
       function renderMessage(msg, isMe=false){
@@ -266,7 +281,17 @@
         name.className = 'name';
         const author = msg.username || msg.name || msg.author || 'Unknown';
         name.textContent = author;
-        if(author === username && nameColor) name.style.color = nameColor;
+
+        // color precedence:
+        // 1) color provided in message (from API)
+        // 2) if author is local user, use local nameColor
+        // 3) default (inherit)
+        const msgColor = detectNameColorFromMsg(msg);
+        if(msgColor){
+          name.style.color = msgColor;
+        } else if(author === username && nameColor){
+          name.style.color = nameColor;
+        }
 
         const time = document.createElement('span');
         time.className = 'time';
@@ -298,7 +323,7 @@
         requestAnimationFrame(()=> { messagesEl.scrollTop = messagesEl.scrollHeight; });
       }
 
-      // Fetch messages for current channel
+      // fetch messages
       async function fetchMessages(){
         if(!apiBase) return false;
         try{
@@ -306,14 +331,18 @@
           if(!res.ok) throw new Error('Fetch failed: ' + res.status);
           const data = await res.json();
           if(!Array.isArray(data)) return false;
+
           data.sort((a,b)=>{
             const ta = new Date(a.createdAt||a.created_at||a.timestamp||0).getTime() || (Number(a.id)||0);
             const tb = new Date(b.createdAt||b.created_at||b.timestamp||0).getTime() || (Number(b.id)||0);
             return ta - tb;
           });
+
+          // render all
           messagesEl.innerHTML = '';
           for(const msg of data){
-            const isMe = ( (msg.username || msg.name || msg.author) === username );
+            const author = msg.username || msg.name || msg.author || '';
+            const isMe = (author === username);
             const el = renderMessage(msg, isMe);
             messagesEl.appendChild(el);
           }
@@ -327,7 +356,7 @@
         }
       }
 
-      // Post with optimistic UI
+      // post message with name color included so others see it
       async function postMessage(text){
         if(!text || !text.trim()) return;
         if(!username){ setStatus('Set username first'); return; }
@@ -339,9 +368,11 @@
         const payload = {
           username: username,
           message: text.trim(),
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          nameColor: nameColor
         };
 
+        // optimistic UI
         const optimisticEl = renderMessage(payload, true);
         messagesEl.appendChild(optimisticEl);
         scrollToBottom();
@@ -353,7 +384,7 @@
             body: JSON.stringify(payload)
           });
           if(!res.ok) throw new Error('Send failed: ' + res.status);
-          // reconcile by refetching
+          // refetch to reconcile (and pick up saved color)
           await fetchMessages();
         }catch(err){
           console.error(err);
@@ -366,7 +397,7 @@
         }
       }
 
-      // Channel switching (returns promise that resolves after first fetch)
+      // channels
       async function setActiveChannel(id){
         activeChannel = id;
         apiBase = CHANNELS[id];
@@ -375,65 +406,139 @@
         channelTitleEl.textContent = '# ' + id;
         if(polling) clearInterval(polling);
         await fetchMessages();
-        // ensure we scroll to bottom after initial load
         scrollToBottom();
         polling = setInterval(fetchMessages, 4000);
       }
 
-      // Username logic (set once)
+      // username logic (set once)
       function lockUsernameUI(){
         usernameBox.style.display = 'none';
         usernameLocked.style.display = 'flex';
         usernameDisplay.textContent = username;
       }
 
-      // Appearance handlers
+      // appearance
       function applyNameColor(c){
         nameColor = c;
         localStorage.setItem('notcord_nameColor', nameColor);
+        // update existing messages (for local user's name)
         Array.from(messagesEl.querySelectorAll('.meta .name')).forEach(el=>{
           if(el.textContent === username) el.style.color = nameColor;
         });
       }
 
-      function applyAccentColor(c){
-        accentColor = c;
+      function applyThemeColor1(c){
+        themeColor1 = c;
+        localStorage.setItem('notcord_theme1', themeColor1);
+        accentColor = themeColor1;
         localStorage.setItem('notcord_accent', accentColor);
-        document.documentElement.style.setProperty('--accent', accentColor);
+        applyTheme();
       }
-
-      function toggleTheme(){
-        theme = (theme === 'dark') ? 'light' : 'dark';
-        localStorage.setItem('notcord_theme', theme);
+      function applyThemeColor2(c){
+        themeColor2 = c;
+        localStorage.setItem('notcord_theme2', themeColor2);
         applyTheme();
       }
 
-      // Input and controls
+      // players panel
+      function normalizePlayerName(p){
+        return p.name || p.username || p.nick || p.displayName || p.id || String(p);
+      }
+      function detectPlayerOnline(p){
+        if(typeof p.online === 'boolean') return p.online;
+        if(typeof p.active === 'boolean') return p.active;
+        if(typeof p.isOnline === 'boolean') return p.isOnline;
+        if(typeof p.status === 'string') return p.status.toLowerCase().includes('online');
+        if(typeof p.online === 'string') return p.online.toLowerCase() === 'true';
+        return false;
+      }
+
+      async function fetchPlayers(){
+        try{
+          const res = await fetch(PLAYERS_API);
+          if(!res.ok) throw new Error('Players fetch failed: ' + res.status);
+          const data = await res.json();
+          if(!Array.isArray(data)) {
+            playersStatusEl.textContent = 'No players data';
+            playersListEl.innerHTML = '';
+            return;
+          }
+
+          const online = [];
+          const offline = [];
+          for(const p of data){
+            const name = normalizePlayerName(p);
+            const on = detectPlayerOnline(p);
+            if(on) online.push({name, raw:p});
+            else offline.push({name, raw:p});
+          }
+
+          // render
+          playersListEl.innerHTML = '';
+          const headerOnline = document.createElement('div');
+          headerOnline.style.fontSize = '13px';
+          headerOnline.style.color = 'var(--muted)';
+          headerOnline.textContent = 'Online (' + online.length + ')';
+          playersListEl.appendChild(headerOnline);
+
+          for(const p of online){
+            const item = document.createElement('div');
+            item.className = 'player online';
+            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span style="font-weight:600">${escapeHtml(p.name)}</span></div><div style="font-size:12px;color:var(--muted)">online</div>`;
+            playersListEl.appendChild(item);
+          }
+
+          const sep = document.createElement('div');
+          sep.style.height = '8px';
+          playersListEl.appendChild(sep);
+
+          const headerOff = document.createElement('div');
+          headerOff.style.fontSize = '13px';
+          headerOff.style.color = 'var(--muted)';
+          headerOff.textContent = 'Offline (' + offline.length + ')';
+          playersListEl.appendChild(headerOff);
+
+          for(const p of offline){
+            const item = document.createElement('div');
+            item.className = 'player offline';
+            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span style="font-weight:600">${escapeHtml(p.name)}</span></div><div style="font-size:12px;color:var(--muted)">offline</div>`;
+            playersListEl.appendChild(item);
+          }
+
+          playersStatusEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+        }catch(err){
+          console.error(err);
+          playersStatusEl.textContent = 'Error loading players';
+        }
+      }
+
+      // helpers
+      function escapeHtml(s){
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      }
+
+      // inputs & controls
       function updateCharCountAndState(){
         let val = messageInput.value || '';
         if(val.length > MAX_CHARS){
-          const trimmed = val.slice(0, MAX_CHARS);
-          messageInput.value = trimmed;
-          val = trimmed;
+          messageInput.value = val.slice(0, MAX_CHARS);
+          val = messageInput.value;
         }
         charCountEl.textContent = `${val.length} / ${MAX_CHARS}`;
         const canSend = username && val.trim().length > 0;
         sendBtn.disabled = !canSend || isSending;
       }
 
-      // Event bindings
+      // event bindings
       channelsEl.addEventListener('click', (e)=>{
         const ch = e.target.closest('.channel');
         if(!ch) return;
-        // fire-and-forget; switching UI updates immediately
-        setActiveChannel(ch.dataset.id).catch(()=>{ /* already handled */ });
+        setActiveChannel(ch.dataset.id).catch(()=>{});
       });
 
       setNameBtn.addEventListener('click', ()=>{
         let val = usernameInput.value.trim();
-        if(!val) {
-          val = 'Guest' + Math.floor(Math.random()*9000 + 1000);
-        }
+        if(!val) val = 'Guest' + Math.floor(Math.random()*9000 + 1000);
         username = val;
         localStorage.setItem('notcord_username', username);
         lockUsernameUI();
@@ -463,32 +568,41 @@
         }
       });
 
-      nameColorInput.addEventListener('input', (e)=> applyNameColor(e.target.value));
+      nameColorInput.addEventListener('input', (e)=> {
+        applyNameColor(e.target.value);
+      });
       resetNameColorBtn.addEventListener('click', ()=>{
-        nameColor = '#ffcc00';
-        nameColorInput.value = nameColor;
-        applyNameColor(nameColor);
+        applyNameColor('#ffcc00');
+        nameColorInput.value = '#ffcc00';
       });
 
-      accentColorInput.addEventListener('input', (e)=> applyAccentColor(e.target.value));
-      resetAccentBtn.addEventListener('click', ()=>{
-        accentColor = '#5865f2';
-        accentColorInput.value = accentColor;
-        applyAccentColor(accentColor);
+      themeColor1Input.addEventListener('input', (e)=> {
+        applyThemeColor1(e.target.value);
+      });
+      resetTheme1Btn.addEventListener('click', ()=>{
+        applyThemeColor1('#071226');
+        themeColor1Input.value = '#071226';
       });
 
-      themeToggleBtn.addEventListener('click', ()=> toggleTheme());
-      resetThemeBtn.addEventListener('click', ()=> {
-        theme = 'dark';
-        localStorage.setItem('notcord_theme', theme);
-        applyTheme();
+      themeColor2Input.addEventListener('input', (e)=> {
+        applyThemeColor2(e.target.value);
+      });
+      resetTheme2Btn.addEventListener('click', ()=>{
+        applyThemeColor2('#07101a');
+        themeColor2Input.value = '#07101a';
       });
 
-      // initialization
+      // init
       async function init(){
+        // apply saved settings
+        nameColor = localStorage.getItem('notcord_nameColor') || nameColor;
+        themeColor1 = localStorage.getItem('notcord_theme1') || themeColor1;
+        themeColor2 = localStorage.getItem('notcord_theme2') || themeColor2;
+        accentColor = localStorage.getItem('notcord_accent') || themeColor1;
         applyTheme();
         initializeAppearanceInputs();
 
+        // username UI
         if(username){
           lockUsernameUI();
         } else {
@@ -496,26 +610,28 @@
           usernameLocked.style.display = 'none';
         }
 
-        // ensure inputs reflect stored values
-        nameColorInput.value = nameColor;
-        accentColorInput.value = accentColor;
-
-        // load selected channel and ensure we scroll to bottom after messages load
+        // channel
         await setActiveChannel(activeChannel);
 
-        // keep char count state in sync
-        updateCharCountAndState();
+        // players
+        await fetchPlayers();
+        if(playersPolling) clearInterval(playersPolling);
+        playersPolling = setInterval(fetchPlayers, 5000);
 
+        // messages polling (already started in setActiveChannel)
         setStatus('Connected (polling every 4s)');
 
-        // guard to ensure bottom on load (handles timing edge cases)
+        // ensure bottom after any layout timing issues
         setTimeout(scrollToBottom, 120);
       }
 
       init();
 
       // cleanup on unload
-      window.addEventListener('beforeunload', ()=> { if(polling) clearInterval(polling); });
+      window.addEventListener('beforeunload', ()=> {
+        if(polling) clearInterval(polling);
+        if(playersPolling) clearInterval(playersPolling);
+      });
     })();
   </script>
 </body>
