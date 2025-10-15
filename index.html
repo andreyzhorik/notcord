@@ -8,7 +8,7 @@
     :root{
       --theme-1: #071226;
       --theme-2: #07101a;
-      --panel: rgba(11,18,32,0.95);
+      --panel-overlay: rgba(11,18,32,0.85);
       --muted: #9aa4b2;
       --accent: #5865f2;
       --msg-bg: #111827;
@@ -33,9 +33,9 @@
       align-items:stretch;
     }
 
-    /* Sidebar (left) */
+    /* Sidebar (left) - now uses theme gradient */
     .sidebar{
-      background:var(--panel);
+      background: linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.02)), linear-gradient(180deg,var(--theme-1),var(--theme-2));
       border-right:1px solid var(--border);
       padding:14px;
       display:flex;
@@ -85,9 +85,9 @@
     .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
     .sendBtn:disabled{opacity:0.6;cursor:default}
 
-    /* Right players panel */
+    /* Right players panel - uses theme gradient */
     .playersPanel{
-      background:var(--panel);
+      background: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02)), linear-gradient(180deg,var(--theme-1),var(--theme-2));
       border-left:1px solid var(--border);
       padding:14px;
       display:flex;
@@ -242,7 +242,6 @@
       let nameColor = localStorage.getItem('notcord_nameColor') || '#ffcc00';
       let themeColor1 = localStorage.getItem('notcord_theme1') || '#071226';
       let themeColor2 = localStorage.getItem('notcord_theme2') || '#07101a';
-      // accent uses themeColor1 by default
       let accentColor = localStorage.getItem('notcord_accent') || themeColor1;
 
       // apply theme (two color gradient)
@@ -264,7 +263,6 @@
 
       // rendering messages
       function detectNameColorFromMsg(msg){
-        // try common field names
         return msg.nameColor || msg.color || msg.name_color || msg.colorHex || msg.colour || null;
       }
 
@@ -282,10 +280,6 @@
         const author = msg.username || msg.name || msg.author || 'Unknown';
         name.textContent = author;
 
-        // color precedence:
-        // 1) color provided in message (from API)
-        // 2) if author is local user, use local nameColor
-        // 3) default (inherit)
         const msgColor = detectNameColorFromMsg(msg);
         if(msgColor){
           name.style.color = msgColor;
@@ -338,7 +332,6 @@
             return ta - tb;
           });
 
-          // render all
           messagesEl.innerHTML = '';
           for(const msg of data){
             const author = msg.username || msg.name || msg.author || '';
@@ -356,7 +349,7 @@
         }
       }
 
-      // post message with name color included so others see it
+      // post message (includes nameColor so others can render color)
       async function postMessage(text){
         if(!text || !text.trim()) return;
         if(!username){ setStatus('Set username first'); return; }
@@ -372,7 +365,6 @@
           nameColor: nameColor
         };
 
-        // optimistic UI
         const optimisticEl = renderMessage(payload, true);
         messagesEl.appendChild(optimisticEl);
         scrollToBottom();
@@ -384,7 +376,6 @@
             body: JSON.stringify(payload)
           });
           if(!res.ok) throw new Error('Send failed: ' + res.status);
-          // refetch to reconcile (and pick up saved color)
           await fetchMessages();
         }catch(err){
           console.error(err);
@@ -415,16 +406,20 @@
         usernameBox.style.display = 'none';
         usernameLocked.style.display = 'flex';
         usernameDisplay.textContent = username;
+        // update players panel immediately
+        injectLocalPlayerIntoPlayers();
       }
 
       // appearance
       function applyNameColor(c){
         nameColor = c;
         localStorage.setItem('notcord_nameColor', nameColor);
-        // update existing messages (for local user's name)
-        Array.from(messagesEl.querySelectorAll('.meta .name')).forEach(el=>{
+        Array.from(document.querySelectorAll('.meta .name')).forEach(el=>{
           if(el.textContent === username) el.style.color = nameColor;
         });
+        // update players list color for local user
+        const youEl = document.querySelector('.player.you span.playerName');
+        if(youEl) youEl.style.color = nameColor;
       }
 
       function applyThemeColor1(c){
@@ -440,7 +435,7 @@
         applyTheme();
       }
 
-      // players panel
+      // players panel helpers
       function normalizePlayerName(p){
         return p.name || p.username || p.nick || p.displayName || p.id || String(p);
       }
@@ -453,14 +448,54 @@
         return false;
       }
 
+      // Insert or update local player in playersList display (ensures local user shows even if not present in API)
+      function injectLocalPlayerIntoPlayers(onlineArr, offlineArr){
+        // If arrays passed, modify them; otherwise adjust DOM directly
+        if(Array.isArray(onlineArr) && Array.isArray(offlineArr)){
+          // remove local if present in offlineArr
+          const name = username;
+          // remove duplicates
+          for(let i = offlineArr.length-1; i>=0; i--){
+            if(offlineArr[i].name === name) offlineArr.splice(i,1);
+          }
+          // ensure local is in onlineArr
+          const exists = onlineArr.some(p => p.name === name);
+          if(!exists) onlineArr.unshift({name, raw:{}, local:true});
+          return;
+        }
+
+        // DOM update: find if local exists; if not, add to top of online section
+        if(!username) return;
+        const youSelector = '.player.you';
+        const existing = playersListEl.querySelector(youSelector);
+        if(existing) return; // already present
+        // find first header "Online (...)" element to insert after
+        const onlineHeader = Array.from(playersListEl.children).find(el => el.textContent && el.textContent.toLowerCase().startsWith('online'));
+        const item = document.createElement('div');
+        item.className = 'player online you';
+        const spanName = `<span style="font-weight:600" class="playerName">${escapeHtml(username)}</span>`;
+        item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span>${spanName} <span style="margin-left:8px;font-size:12px;color:var(--muted)">(you)</span></div><div style="font-size:12px;color:var(--muted)">online</div>`;
+        // color local name
+        const tmp = document.createElement('div'); tmp.innerHTML = item.innerHTML;
+        const nameSpan = tmp.querySelector('.playerName');
+        if(nameSpan) nameSpan.style.color = nameColor;
+        item.innerHTML = tmp.innerHTML;
+        if(onlineHeader && onlineHeader.nextSibling){
+          playersListEl.insertBefore(item, onlineHeader.nextSibling);
+        } else {
+          playersListEl.insertBefore(item, playersListEl.firstChild);
+        }
+      }
+
       async function fetchPlayers(){
         try{
           const res = await fetch(PLAYERS_API);
           if(!res.ok) throw new Error('Players fetch failed: ' + res.status);
           const data = await res.json();
-          if(!Array.isArray(data)) {
+          if(!Array.isArray(data)){
             playersStatusEl.textContent = 'No players data';
             playersListEl.innerHTML = '';
+            injectLocalPlayerIntoPlayers(); // still show local if set
             return;
           }
 
@@ -473,7 +508,18 @@
             else offline.push({name, raw:p});
           }
 
-          // render
+          // ensure local user appears in online list
+          if(username){
+            const existsOnline = online.some(p=>p.name === username);
+            const existsOffline = offline.some(p=>p.name === username);
+            if(!existsOnline){
+              // remove from offline if present
+              for(let i=offline.length-1;i>=0;i--) if(offline[i].name===username) offline.splice(i,1);
+              online.unshift({name:username, raw:{}, local:true});
+            }
+          }
+
+          // render DOM
           playersListEl.innerHTML = '';
           const headerOnline = document.createElement('div');
           headerOnline.style.fontSize = '13px';
@@ -483,8 +529,17 @@
 
           for(const p of online){
             const item = document.createElement('div');
-            item.className = 'player online';
-            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span style="font-weight:600">${escapeHtml(p.name)}</span></div><div style="font-size:12px;color:var(--muted)">online</div>`;
+            item.className = 'player online' + (p.local ? ' you' : '');
+            const displayName = escapeHtml(p.name);
+            const youLabel = p.local ? ' <span style="margin-left:6px;font-size:12px;color:var(--muted)">(you)</span>' : '';
+            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span class="playerName" style="font-weight:600">${displayName}</span>${youLabel}</div><div style="font-size:12px;color:var(--muted)">online</div>`;
+            // color player's name if available in raw (some APIs may include color) or color local user
+            const nameSpan = item.querySelector('.playerName');
+            if(p.raw && (p.raw.nameColor || p.raw.color)) {
+              nameSpan.style.color = p.raw.nameColor || p.raw.color;
+            } else if(p.local) {
+              nameSpan.style.color = nameColor;
+            }
             playersListEl.appendChild(item);
           }
 
@@ -501,14 +556,28 @@
           for(const p of offline){
             const item = document.createElement('div');
             item.className = 'player offline';
-            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span style="font-weight:600">${escapeHtml(p.name)}</span></div><div style="font-size:12px;color:var(--muted)">offline</div>`;
+            const displayName = escapeHtml(p.name);
+            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot" aria-hidden></span><span class="playerName" style="font-weight:600">${displayName}</span></div><div style="font-size:12px;color:var(--muted)">offline</div>`;
             playersListEl.appendChild(item);
           }
 
           playersStatusEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+
+          // make sure local user is visible and colored (in case it wasn't provided by API)
+          if(username) {
+            const youEl = playersListEl.querySelector('.player.you .playerName, .player.you');
+            if(!youEl) injectLocalPlayerIntoPlayers();
+            else {
+              const nameSpan = playersListEl.querySelector('.player.you .playerName');
+              if(nameSpan) nameSpan.style.color = nameColor;
+            }
+          }
         }catch(err){
           console.error(err);
           playersStatusEl.textContent = 'Error loading players';
+          // still show local user if set
+          playersListEl.innerHTML = '';
+          injectLocalPlayerIntoPlayers();
         }
       }
 
@@ -543,6 +612,8 @@
         localStorage.setItem('notcord_username', username);
         lockUsernameUI();
         setStatus('Username set: ' + username);
+        // update players immediately
+        fetchPlayers();
         updateCharCountAndState();
       });
 
@@ -570,6 +641,8 @@
 
       nameColorInput.addEventListener('input', (e)=> {
         applyNameColor(e.target.value);
+        // send a presence update to players API is optional; we just update local display
+        fetchPlayers();
       });
       resetNameColorBtn.addEventListener('click', ()=>{
         applyNameColor('#ffcc00');
@@ -578,6 +651,7 @@
 
       themeColor1Input.addEventListener('input', (e)=> {
         applyThemeColor1(e.target.value);
+        // update panels immediately
       });
       resetTheme1Btn.addEventListener('click', ()=>{
         applyThemeColor1('#071226');
@@ -594,7 +668,7 @@
 
       // init
       async function init(){
-        // apply saved settings
+        // load saved settings
         nameColor = localStorage.getItem('notcord_nameColor') || nameColor;
         themeColor1 = localStorage.getItem('notcord_theme1') || themeColor1;
         themeColor2 = localStorage.getItem('notcord_theme2') || themeColor2;
@@ -602,7 +676,6 @@
         applyTheme();
         initializeAppearanceInputs();
 
-        // username UI
         if(username){
           lockUsernameUI();
         } else {
@@ -610,7 +683,7 @@
           usernameLocked.style.display = 'none';
         }
 
-        // channel
+        // start channel
         await setActiveChannel(activeChannel);
 
         // players
@@ -618,10 +691,9 @@
         if(playersPolling) clearInterval(playersPolling);
         playersPolling = setInterval(fetchPlayers, 5000);
 
-        // messages polling (already started in setActiveChannel)
         setStatus('Connected (polling every 4s)');
 
-        // ensure bottom after any layout timing issues
+        // ensure bottom after layout
         setTimeout(scrollToBottom, 120);
       }
 
