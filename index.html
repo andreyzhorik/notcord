@@ -115,7 +115,6 @@
       <div class="channels" id="channels">
         <div class="channel active" data-id="general" role="button"># general</div>
         <div class="channel" data-id="school" role="button"># school</div>
-        <div class="channel" data-id="games" role="button"># games</div>
         <div class="channel" data-id="announcements" role="button"># announcements <span class="lock">🔒</span></div>
       </div>
 
@@ -191,11 +190,10 @@
 
   <script>
     (function(){
-      // APIs
+      // APIs - removed games channel entirely
       const CHANNELS = {
         general: 'https://68e839b2f2707e6128ca35e1.mockapi.io/chat',
-        school:  'https://68eeed86b06cc802829ba196.mockapi.io/schoolchat',
-        games:   'https://68eeed86b06cc802829ba196.mockapi.io/gameschat'
+        school:  'https://68eeed86b06cc802829ba196.mockapi.io/schoolchat'
       };
       const PLAYERS_API = 'https://68e839b2f2707e6128ca35e1.mockapi.io/players';
 
