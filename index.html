@@ -3,42 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>notcord — multi-channel with photo upload and anti-cheat</title>
+  <title>notcord — multi-channel (with photos, anti-cheat & anti-spam)</title>
   <style>
     :root{
       --theme-1: #071226;
       --theme-2: #07101a;
-      --theme-3: #0b2233; /* chat bubbles & logo */
+      --theme-3: #0b2233;
       --muted: #9aa4b2;
       --accent: #5865f2;
-      --msg-bg: #111827;
       --me-bg: #2b3440;
       --border: rgba(255,255,255,0.06);
       --text: #e6eef6;
     }
-
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Helvetica,Arial;color:var(--text);
       background:linear-gradient(180deg,var(--theme-1) 0%, var(--theme-2) 100%);
     }
-
-    .app { width:100%; height:100vh; display:grid; grid-template-columns:260px 1fr 240px; overflow:hidden; }
+    .app { width:100%; height:100vh; display:grid; grid-template-columns:260px 1fr 260px; overflow:hidden; }
     .sidebar{ padding:14px; display:flex; flex-direction:column; gap:12px; height:100vh; overflow:auto; background:linear-gradient(180deg,var(--theme-1),var(--theme-2)); border-right:1px solid var(--border) }
-
     .brand{display:flex;gap:10px;align-items:center;font-weight:700;font-size:18px}
     .brand .dot{width:18px;height:18px;border-radius:50%;background:var(--theme-3);box-shadow:0 6px 20px rgba(11,34,51,0.35)}
     .brand .name{color:var(--theme-3);font-weight:800;font-size:18px}
-
     .usernameBox{display:flex;gap:8px;align-items:center}
     .usernameBox input{flex:1;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:inherit;outline:none}
     .usernameBox button{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
     .usernameLocked{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);font-weight:600;overflow:hidden}
-
     .channels{margin-top:6px;display:flex;flex-direction:column;gap:6px}
     .channel{padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer;border:1px solid transparent;display:flex;justify-content:space-between;align-items:center}
     .channel:hover{background:rgba(255,255,255,0.01)}
     .channel.active{background:linear-gradient(90deg, rgba(88,101,242,0.12), rgba(88,101,242,0.02));color:var(--text);border-color:rgba(88,101,242,0.12)}
-
     .settings{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px solid var(--border)}
     .settings label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
     .settings input[type="color"]{width:48px;height:32px;padding:0;border:none;background:transparent;cursor:pointer}
@@ -46,7 +39,6 @@
 
     .chatPanel{display:flex;flex-direction:column;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);position:relative;min-height:0}
     .chatBox{display:flex;flex-direction:column;height:100%;min-height:0}
-
     .header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:transparent}
     .header h2{margin:0;font-size:18px}
     .header .spacer{flex:1}
@@ -63,59 +55,28 @@
       padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;word-break:break-word;
       border-left:4px solid rgba(255,255,255,0.03);
       box-shadow:0 6px 18px rgba(2,6,23,0.6);
-      max-width:360px;
+      max-width:480px;
     }
-    .message.me .bubble{ border-left-color: var(--accent); }
-
+    .message.me .bubble{ border-left-color: var(--accent); background:var(--me-bg) }
     .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
     .meta .name{font-weight:700}
     .meta .time{font-size:12px;color:var(--muted)}
     .text{white-space:pre-wrap;color:inherit;font-size:15px;word-break:break-word;overflow-wrap:break-word}
     .privateTag{font-size:12px;color:#ffd980;margin-left:8px}
 
-    /* For photo messages */
-    .photoMessage img {
-      max-width: 320px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    .photoMessage img:hover {
-      transform: scale(1.05);
-    }
+    .photoMessage img { max-width: 420px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor:pointer; transition:transform .15s }
+    .photoMessage img:hover{ transform: scale(1.03) }
 
     .inputArea{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
-    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid var(--border);color:inherit;outline:none;white-space:pre-wrap;}
+    .inputArea textarea{flex:1;min-height:44px;max-height:160px;resize:none;padding:10px;border-radius:10px;background:transparent;border:1px solid var(--border);color:inherit;outline:none}
     .controls{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:120px}
     .charCount{font-size:12px;color:var(--muted)}
     .sendBtn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
     .sendBtn:disabled{opacity:0.6;cursor:default}
 
-    .photoUploadArea {
-      margin-top: 8px;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .photoUploadArea input[type="file"] {
-      flex: 1;
-      cursor: pointer;
-    }
-    .photoUploadArea button {
-      background: var(--accent);
-      border: none;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .photoUploadArea button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-
+    .photoUploadArea { padding:12px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent) }
+    .photoUploadArea input[type=file]{ flex:1 }
+    .photoUploadArea button{ background:var(--accent); color:white; border:none; padding:8px 12px; border-radius:10px; cursor:pointer }
     .playersPanel{background:linear-gradient(180deg,var(--theme-1),var(--theme-2));border-left:1px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:12px;height:100vh;overflow:auto}
     .playersPanel h3{margin:0;font-size:15px;color:var(--muted)}
     .playersList{display:flex;flex-direction:column;gap:6px;overflow:auto}
@@ -124,8 +85,7 @@
     .player .statusDot{width:10px;height:10px;border-radius:50%;margin-right:8px;flex-shrink:0}
     .player.online .statusDot{background:#39d353;box-shadow:0 0 8px rgba(57,211,83,0.12)}
     .player.offline .statusDot{background:#a0a0a0}
-
-    @media (max-width:980px){ .app{grid-template-columns:220px 1fr 160px} }
+    @media (max-width:980px){ .app{grid-template-columns:200px 1fr 140px} }
     @media (max-width:720px){ .app{grid-template-columns:1fr} .sidebar,.playersPanel{display:none} }
   </style>
 </head>
@@ -146,6 +106,7 @@
 
       <div class="channels" id="channels">
         <div class="channel active" data-id="general" role="button"># general</div>
+        <div class="channel" data-id="general-2" role="button"># general 2</div>
         <div class="channel" data-id="photos" role="button"># photos</div>
         <div class="channel" data-id="announcements" role="button"># announcements <span class="lock">🔒</span></div>
       </div>
@@ -202,7 +163,7 @@
 
         <div class="messages" id="messages" role="log" aria-atomic="false"></div>
 
-        <div id="inputWrapper" class="inputArea">
+        <div class="inputArea" id="inputWrapper">
           <textarea id="messageInput" placeholder="Message (Shift+Enter for newline)" maxlength="100"></textarea>
           <div class="controls">
             <div class="charCount" id="charCount">0 / 100</div>
@@ -210,7 +171,7 @@
           </div>
         </div>
 
-        <div id="photoUploadWrapper" style="display:none; padding:12px; border-top:1px solid var(--border); background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);">
+        <div class="photoUploadArea" id="photoUploadWrapper" style="display:none">
           <input type="file" id="photoInput" accept="image/*" />
           <button id="uploadPhotoBtn" disabled>Upload Photo</button>
         </div>
@@ -227,26 +188,28 @@
 
   <script>
     (function(){
-      // Channels including new photos channel
+      // Channel endpoints
       const CHANNELS = {
         general: 'https://68e839b2f2707e6128ca35e1.mockapi.io/chat',
+        'general-2': 'https://68eeed86b06cc802829ba196.mockapi.io/chat2', // new requested channel
         photos: 'https://68eeed86b06cc802829ba196.mockapi.io/photos',
-        announcements: null // read only
+        announcements: null
       };
       const PLAYERS_API = 'https://68e839b2f2707e6128ca35e1.mockapi.io/players';
 
-      // Bad words lists (English and Russian - add more to extend)
+      // Bad words (examples). Expand list as needed.
       const BAD_WORDS = [
-        // English bad words (example, add as needed)
-        'badword1', 'badword2', 'badword3',
-        // Russian bad words (example, add as needed)
-        'плохоеcлово1', 'плохоеcлово2', 'плохоеcлово3'
+        'badword1','badword2','badword3',
+        'плохоеcлово1','плохоеcлово2','плохоеcлово3'
       ];
 
-      // Mute map: username -> timestamp when mute expires (ms)
-      const muteMap = new Map();
+      // Anti-spam config: cooldown and sliding window
+      const MIN_SECONDS_BETWEEN_MESSAGES = 3;        // per-user cooldown
+      const WINDOW_SECONDS = 30;                     // sliding window length
+      const MAX_MSGS_PER_WINDOW = 6;                 // max messages allowed inside window
+      const DUPLICATE_DELAY_MS = 5000;               // block immediate duplicate messages within this ms
 
-      // DOM refs
+      // state
       const channelsEl = document.getElementById('channels');
       const channelTitleEl = document.getElementById('channelTitle');
       const messagesEl = document.getElementById('messages');
@@ -278,7 +241,6 @@
       const playersListEl = document.getElementById('playersList');
       const playersStatusEl = document.getElementById('playersStatus');
 
-      // state
       let activeChannel = localStorage.getItem('notcord_channel') || 'general';
       let apiBase = CHANNELS[activeChannel] || null;
       let polling = null;
@@ -286,19 +248,13 @@
       let heartbeatInterval = null;
       let isSending = false;
       const MAX_CHARS = 100;
-      const MAX_MESSAGES = 80;
+      const MAX_MESSAGES = 200;
 
-      // Typing & Mute helpers
-      const TYPING_KEY = 'notcord_typing_v1';
+      // typing map for indicator
+      const TYPING_KEY = 'notcord_typing_v2';
       const TYPING_EXPIRE_MS = 5000;
-      let isLocalTyping = false;
-      let typingStopTimeout = null;
 
-      // Auto scroll
-      let autoScroll = true;
-      const AUTO_SCROLL_THRESHOLD = 60;
-
-      // User info
+      // user info
       let username = localStorage.getItem('notcord_username') || '';
       let nameColor = localStorage.getItem('notcord_nameColor') || '#ffcc00';
       let themeColor1 = localStorage.getItem('notcord_theme1') || '#071226';
@@ -307,58 +263,21 @@
       let accentColor = localStorage.getItem('notcord_accent') || themeColor1;
       let localPlayerId = localStorage.getItem('notcord_playerId') || null;
 
-      // Heartbeat and offline fix
+      // mute map (username -> expire timestamp ms)
+      const muteMap = new Map();
+
+      // spam tracking per user (in-memory): message timestamps and last message text
+      const spamState = {}; // { username: { timestamps: [ms,...], lastMessage: '...', lastMsgTime: ms } }
+
+      // heartbeat & online detection
       const HEARTBEAT_MS = 5000;
       const PLAYER_OFFLINE_THRESHOLD_MS = 15000;
 
-      // Utility: check if user is muted
-      function isUserMuted(user) {
-        const muteExpire = muteMap.get(user);
-        if (!muteExpire) return false;
-        if (Date.now() > muteExpire) {
-          muteMap.delete(user);
-          return false;
-        }
-        return true;
-      }
+      // helpers
+      function setStatus(txt){ statusEl.textContent = txt; }
+      function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+      function formatTime(iso){ try{ const d=new Date(iso); if(isNaN(d)) return ''; return d.toLocaleString([], {hour:'2-digit', minute:'2-digit'});}catch(e){return ''} }
 
-      // Utility: check message for bad words (case-insensitive, simple)
-      function containsBadWords(text) {
-        if (!text) return false;
-        const lowered = text.toLowerCase();
-        return BAD_WORDS.some(word => lowered.includes(word));
-      }
-
-      // Show/hide input and photo upload area based on channel
-      function updateInputArea() {
-        if (activeChannel === 'photos') {
-          messageInput.style.display = 'none';
-          sendBtn.style.display = 'none';
-          charCountEl.style.display = 'none';
-          inputWrapper.style.display = 'none';
-          photoUploadWrapper.style.display = 'flex';
-        } else if (activeChannel === 'announcements') {
-          messageInput.disabled = true;
-          sendBtn.disabled = true;
-          charCountEl.style.opacity = 0.5;
-          photoUploadWrapper.style.display = 'none';
-          inputWrapper.style.display = 'flex';
-          messageInput.style.display = 'block';
-          sendBtn.style.display = 'inline-flex';
-          charCountEl.style.display = 'block';
-        } else {
-          photoUploadWrapper.style.display = 'none';
-          inputWrapper.style.display = 'flex';
-          messageInput.style.display = 'block';
-          sendBtn.style.display = 'inline-flex';
-          charCountEl.style.display = 'block';
-          messageInput.disabled = false;
-          sendBtn.disabled = false;
-          charCountEl.style.opacity = 1;
-        }
-      }
-
-      // Apply theme colors
       function applyTheme(){
         document.documentElement.style.setProperty('--theme-1', themeColor1);
         document.documentElement.style.setProperty('--theme-2', themeColor2);
@@ -372,18 +291,82 @@
         themeColor3Input.value = themeColor3;
       }
 
-      // Format time helper
-      function formatTime(iso){
-        try{
-          const d = new Date(iso);
-          if(isNaN(d)) return '';
-          return d.toLocaleString([], { hour: '2-digit', minute: '2-digit' });
-        }catch(e){ return ''; }
+      // typing indicator (localStorage)
+      function readTypingMap(){ try{ return JSON.parse(localStorage.getItem(TYPING_KEY)||'{}'); }catch(e){return {}} }
+      function writeTypingMap(m){ try{ localStorage.setItem(TYPING_KEY, JSON.stringify(m)); }catch(e){} }
+      function updateTypingUI(){
+        const map = readTypingMap();
+        const channelMap = map[activeChannel] || {};
+        const now = Date.now();
+        const typers = Object.keys(channelMap).filter(u => u !== username && (now - channelMap[u]) <= TYPING_EXPIRE_MS);
+        if(!typers.length) typingIndicatorEl.textContent = '';
+        else if(typers.length === 1) typingIndicatorEl.textContent = typers[0] + ' is typing...';
+        else typingIndicatorEl.textContent = typers[0] + ' and ' + (typers.length-1) + ' others are typing...';
+      }
+      window.addEventListener('storage', (e)=> { if(e.key === TYPING_KEY) updateTypingUI(); });
+
+      // mute helpers
+      function isUserMuted(user){
+        const t = muteMap.get(user);
+        if(!t) return false;
+        if(Date.now() > t){ muteMap.delete(user); return false; }
+        return true;
+      }
+      function muteUser(user, seconds=120){ muteMap.set(user, Date.now() + seconds*1000); }
+
+      // bad words check (simple substring)
+      function containsBadWords(text){
+        if(!text) return false;
+        const lower = text.toLowerCase();
+        return BAD_WORDS.some(w => w && lower.includes(w));
       }
 
-      // Render message, support photo messages (photos channel)
+      // spam check: cooldown, messages per window, duplicate message
+      function canSendMessage(user, text){
+        if(isUserMuted(user)) return { ok:false, reason:'muted' };
+        if(!spamState[user]) spamState[user] = { timestamps: [], lastMessage: '', lastMsgTime: 0 };
+
+        const state = spamState[user];
+        const now = Date.now();
+
+        // remove timestamps older than window
+        state.timestamps = state.timestamps.filter(ts => now - ts <= WINDOW_SECONDS*1000);
+
+        // rate limit: cooldown between messages
+        if(state.timestamps.length){
+          const lastTs = state.timestamps[state.timestamps.length-1];
+          if(now - lastTs < MIN_SECONDS_BETWEEN_MESSAGES*1000){
+            return { ok:false, reason:'cooldown', wait: (MIN_SECONDS_BETWEEN_MESSAGES*1000 - (now-lastTs))/1000 };
+          }
+        }
+
+        // messages-per-window
+        if(state.timestamps.length >= MAX_MSGS_PER_WINDOW){
+          return { ok:false, reason:'flood' };
+        }
+
+        // duplicate prevention
+        if(state.lastMessage && state.lastMessage === text && (now - state.lastMsgTime) < DUPLICATE_DELAY_MS){
+          return { ok:false, reason:'duplicate' };
+        }
+
+        // allowed
+        return { ok:true, state };
+      }
+
+      // record successful send
+      function recordMessageSent(user, text){
+        if(!spamState[user]) spamState[user] = { timestamps: [], lastMessage: '', lastMsgTime: 0 };
+        const state = spamState[user];
+        const now = Date.now();
+        state.timestamps.push(now);
+        state.lastMessage = text;
+        state.lastMsgTime = now;
+      }
+
+      // render message including photos
       function renderMessage(msg, localUser){
-        if(msg.privateTo && !(msg.privateTo === localUser || (msg.username === localUser))) return null;
+        if(msg.privateTo && !(msg.privateTo === localUser || msg.username === localUser)) return null;
         const container = document.createElement('div');
         const author = msg.username || msg.name || 'Unknown';
         const isMe = author === localUser;
@@ -393,162 +376,124 @@
 
         const meta = document.createElement('div');
         meta.className = 'meta';
-        const name = document.createElement('span');
-        name.className = 'name';
-        name.textContent = author;
+        const name = document.createElement('span'); name.className = 'name'; name.textContent = author;
         if(isMe && nameColor) name.style.color = nameColor;
-
-        const time = document.createElement('span');
-        time.className = 'time';
-        time.textContent = formatTime(msg.createdAt || msg.created_at || msg.timestamp || msg.time || '');
-
+        const time = document.createElement('span'); time.className = 'time'; time.textContent = formatTime(msg.createdAt || msg.created_at || msg.timestamp || msg.time || '');
         meta.appendChild(name);
         meta.appendChild(time);
-
+        if(msg.privateTo){
+          const tag = document.createElement('span'); tag.className='privateTag'; tag.textContent = msg.username===localUser ? `to ${msg.privateTo}` : 'private';
+          meta.appendChild(tag);
+        }
         bubble.appendChild(meta);
 
-        if(activeChannel === 'photos' && msg.imageUrl) {
-          // photo message rendering
-          const img = document.createElement('img');
-          img.src = msg.imageUrl;
-          img.alt = msg.message || "Photo";
-          img.style.maxWidth = "320px";
-          img.style.borderRadius = "12px";
-          img.style.cursor = "pointer";
-          img.addEventListener('click', () => window.open(img.src, '_blank'));
-          bubble.appendChild(img);
-
+        // photo channel messages may include imageUrl
+        if(msg.imageUrl){
+          const wrapper = document.createElement('div'); wrapper.className='photoMessage';
+          const img = document.createElement('img'); img.src = msg.imageUrl; img.alt = msg.message || 'photo';
+          img.addEventListener('click', ()=> window.open(img.src, '_blank'));
+          wrapper.appendChild(img);
           if(msg.message){
-            const text = document.createElement('div');
-            text.className = 'text';
-            text.textContent = msg.message;
-            bubble.appendChild(text);
+            const caption = document.createElement('div'); caption.className='text'; caption.textContent = msg.message;
+            wrapper.appendChild(caption);
           }
-          container.appendChild(bubble);
-          return container;
+          bubble.appendChild(wrapper);
+        } else {
+          const text = document.createElement('div'); text.className='text'; text.textContent = msg.message || msg.text || msg.content || '';
+          bubble.appendChild(text);
         }
 
-        // normal text message
-        const text = document.createElement('div');
-        text.className = 'text';
-        text.textContent = msg.message || msg.text || msg.content || '';
-        bubble.appendChild(text);
         container.appendChild(bubble);
         return container;
       }
 
-      // Scroll helpers
-      function isAtBottom(){
-        return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - 60;
-      }
-      function scrollToBottom(){
-        requestAnimationFrame(() => messagesEl.scrollTop = messagesEl.scrollHeight);
-      }
+      function isAtBottom(){ return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - 80; }
+      function scrollToBottom(){ requestAnimationFrame(()=> messagesEl.scrollTop = messagesEl.scrollHeight); }
 
-      // Fetch messages and render
+      // fetch messages
       async function fetchMessages(){
         if(activeChannel === 'announcements'){
-          // hardcoded announcements (read-only)
           const notes = [
-            { username: 'NOTCORD', message: 'Welcome to NOTCORD!', createdAt: new Date().toISOString(), nameColor: '#ff7a18' },
-            { username: 'NOTCORD', message: 'Server maintenance Sunday 02:00 UTC.', createdAt: new Date(Date.now() - 6*3600*1000).toISOString(), nameColor: '#18a0ff' }
+            { username:'NOTCORD', message:'Welcome to NOTCORD!', createdAt:new Date().toISOString() },
+            { username:'NOTCORD', message:'Maintenance: Sunday 02:00 UTC.', createdAt:new Date(Date.now()-3600*1000*6).toISOString() }
           ];
           messagesEl.innerHTML = '';
-          for(const msg of notes){
-            const el = renderMessage(msg, username);
-            if(el) messagesEl.appendChild(el);
-          }
+          for(const m of notes){ const el = renderMessage(m, username); if(el) messagesEl.appendChild(el); }
           scrollToBottom();
-          setStatus('Announcements - read-only');
+          setStatus('Announcements (read-only)');
           return;
         }
         if(!apiBase) return;
-        try {
+        try{
           const res = await fetch(apiBase);
-          if(!res.ok) throw new Error('Fetch failed: ' + res.status);
+          if(!res.ok) throw new Error('Fetch failed: '+res.status);
           const data = await res.json();
           if(!Array.isArray(data)) return;
-          data.sort((a,b) => {
+          data.sort((a,b)=>{
             const ta = new Date(a.createdAt||a.created_at||a.timestamp||0).getTime() || (Number(a.id)||0);
             const tb = new Date(b.createdAt||b.created_at||b.timestamp||0).getTime() || (Number(b.id)||0);
-            return ta - tb;
+            return ta-tb;
           });
+          const wasAtBottom = isAtBottom();
           messagesEl.innerHTML = '';
-          for(const msg of data){
-            const el = renderMessage(msg, username);
+          for(const m of data){
+            const el = renderMessage(m, username);
             if(el) messagesEl.appendChild(el);
           }
-          scrollToBottom();
-          setStatus('Connected — ' + data.length + ' messages');
-        } catch(e){
-          console.error(e);
+          if(wasAtBottom) scrollToBottom();
+          setStatus('Connected — '+data.length+' messages');
+        }catch(err){
+          console.error(err);
           setStatus('Error fetching messages');
         }
       }
 
-      // Safe fetch wrapper
+      // safeFetch wrapper
       async function safeFetch(url, method='GET', body=null){
         try{
           const opts = { method, headers:{} };
-          if(body !== null){
-            opts.headers['Content-Type'] = 'application/json';
-            opts.body = JSON.stringify(body);
-          }
+          if(body !== null){ opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
           const r = await fetch(url, opts);
-          if(!r.ok) return null;
-          if(r.status === 204) return null;
+          if(!r.ok){ console.warn('safeFetch non-ok', r.status, url); return null; }
+          if(r.status===204) return null;
           return await r.json();
-        }catch(e){
-          console.warn('safeFetch error', e);
-          return null;
-        }
+        }catch(e){ console.warn('safeFetch error', e); return null; }
       }
 
-      // Anti-cheat: check message for bad words, mute user for 2 mins if found
-      function checkAndMuteUser(user, text) {
-        if(isUserMuted(user)) return { muted: true, remaining: Math.ceil((muteMap.get(user)-Date.now())/1000) };
-        if(containsBadWords(text)) {
-          muteMap.set(user, Date.now() + 2*60*1000);
-          return { muted: true, remaining: 120 };
-        }
-        return { muted: false };
-      }
-
-      // Posting message with anti-cheat check
+      // post text message with anti-cheat and anti-spam
       async function postMessage(rawText){
         if(!rawText || !rawText.trim()) return;
         if(!username){ setStatus('Set username first'); return; }
-        if(isUserMuted(username)){
-          const rem = Math.ceil((muteMap.get(username)-Date.now())/1000);
-          setStatus(`You are muted for bad language. Remaining: ${rem} seconds`);
+        if(isUserMuted(username)){ const rem = Math.ceil((muteMap.get(username)-Date.now())/1000); setStatus('You are muted. Remaining: '+rem+'s'); return; }
+        if(!apiBase){ setStatus('No channel selected'); return; }
+
+        // anti-cheat
+        if(containsBadWords(rawText)){
+          muteUser(username, 120);
+          setStatus('Forbidden words detected. You are muted for 2 minutes.');
           return;
         }
-        if(!apiBase){ setStatus('No channel selected'); return; }
-        if(isSending) return;
 
-        // Anti-cheat check
-        if(checkAndMuteUser(username, rawText).muted){
-          setStatus('Message contains forbidden words. You are muted for 2 minutes.');
+        // anti-spam
+        const check = canSendMessage(username, rawText);
+        if(!check.ok){
+          if(check.reason==='cooldown') setStatus('Slow down: wait '+Math.ceil(check.wait)+'s');
+          else if(check.reason==='flood') setStatus('You are sending messages too fast. Try again later.');
+          else if(check.reason==='duplicate') setStatus('Duplicate message blocked.');
+          else if(check.reason==='muted') setStatus('You are muted.');
           return;
         }
 
         isSending = true;
         sendBtn.disabled = true;
 
+        // handle whisper /w name text
         let privateTo = null;
         let messageText = rawText.trim();
         if(messageText.toLowerCase().startsWith('/w ')){
-          const match = messageText.match(/^\/w\s+(\S+)\s+([\s\S]+)$/i);
-          if(match){ privateTo = match[1]; messageText = match[2]; if(!messageText){ setStatus('Whisper requires text'); isSending=false; sendBtn.disabled=false; return; } }
+          const m = messageText.match(/^\/w\s+(\S+)\s+([\s\S]+)$/i);
+          if(m){ privateTo = m[1]; messageText = m[2]; if(!messageText){ setStatus('Whisper requires text'); isSending=false; sendBtn.disabled=false; return; } }
           else { setStatus('Whisper format: /w name text'); isSending=false; sendBtn.disabled=false; return; }
-        }
-
-        // If muted user tries to send, block
-        if(isUserMuted(username)){
-          setStatus('You are muted for bad language.');
-          isSending = false;
-          sendBtn.disabled = false;
-          return;
         }
 
         const payload = {
@@ -560,81 +505,65 @@
           isPrivate: !!privateTo
         };
 
-        // Optimistic UI
-        const optimisticEl = renderMessage(payload, username);
-        if(optimisticEl) messagesEl.appendChild(optimisticEl);
+        // optimistic UI
+        const optimistic = renderMessage(payload, username);
+        if(optimistic) messagesEl.appendChild(optimistic);
         scrollToBottom();
+        recordMessageSent(username, messageText);
 
         try{
           const res = await fetch(apiBase, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
             body: JSON.stringify(payload)
           });
-          if(!res.ok) throw new Error('Send failed: ' + res.status);
+          if(!res.ok) throw new Error('Send failed: '+res.status);
           await fetchMessages();
-        }catch(err){
-          console.error(err);
-          setStatus('Failed to send message');
-          const timeEl = optimisticEl && optimisticEl.querySelector('.meta .time');
-          if(timeEl) timeEl.textContent += ' (failed)';
+        }catch(e){
+          console.error(e);
+          setStatus('Failed to send');
         }finally{
           isSending = false;
           sendBtn.disabled = false;
         }
       }
 
-      // Photo upload for photos channel
-      async function uploadPhoto(file) {
+      // upload photo (reads file and posts base64 as imageUrl)
+      async function uploadPhoto(file){
         if(!file) return;
-        if(isUserMuted(username)){
-          setStatus('You are muted and cannot upload photos.');
-          return;
-        }
-
-        // Anti-cheat: check file name for bad words - simple check
-        if(checkAndMuteUser(username, file.name).muted){
-          setStatus('File name contains forbidden words. You are muted for 2 minutes.');
-          return;
-        }
+        if(!username){ setStatus('Set username first'); return; }
+        if(isUserMuted(username)){ setStatus('You are muted and cannot upload.'); return; }
+        if(containsBadWords(file.name)){ muteUser(username,120); setStatus('Forbidden name detected. You are muted for 2 minutes.'); return; }
 
         const reader = new FileReader();
-        reader.onload = async function(e) {
-          const base64Data = e.target.result;
-          // Post photo message to photos API
+        reader.onload = async (e) => {
+          const dataUrl = e.target.result;
           const payload = {
             username,
             createdAt: new Date().toISOString(),
             nameColor,
-            imageUrl: base64Data,
-            message: "", // optionally add a caption input if desired
+            imageUrl: dataUrl,
+            message: ''
           };
-
           isSending = true;
           uploadPhotoBtn.disabled = true;
-
-          try {
+          try{
             const res = await fetch(CHANNELS.photos, {
-              method: 'POST',
-              headers: {'Content-Type':'application/json'},
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
               body: JSON.stringify(payload)
             });
-            if(!res.ok) throw new Error('Upload failed: ' + res.status);
-            setStatus('Photo uploaded successfully');
+            if(!res.ok) throw new Error('Upload failed: '+res.status);
+            setStatus('Photo uploaded');
             photoInput.value = '';
             await fetchMessages();
-          } catch(e) {
-            console.error(e);
-            setStatus('Failed to upload photo');
-          } finally {
-            isSending = false;
-            uploadPhotoBtn.disabled = false;
-          }
+          }catch(e){ console.error(e); setStatus('Photo upload failed'); }
+          finally{ isSending = false; uploadPhotoBtn.disabled = false; }
         };
         reader.readAsDataURL(file);
       }
 
-      // Player online detection with stricter lastSeen check
+      // players: online detection by lastSeen (recent)
       function normalizePlayerName(p){ return p.name || p.username || p.nick || p.displayName || (p.id?String(p.id):String(p)); }
       function detectPlayerOnline(p){
         try{
@@ -651,63 +580,43 @@
           const res = await fetch(PLAYERS_API);
           if(!res.ok) throw new Error('Players fetch failed: '+res.status);
           const data = await res.json();
-          if(!Array.isArray(data)){ playersStatusEl.textContent='No players data'; playersListEl.innerHTML=''; return; }
-
-          const onlineList = [];
-          const offlineList = [];
+          if(!Array.isArray(data)){ playersStatusEl.textContent='No players'; playersListEl.innerHTML=''; return; }
+          const online = [], offline = [];
           for(const p of data){
             const name = normalizePlayerName(p);
             const on = detectPlayerOnline(p);
-            if(on) onlineList.push({name, raw:p});
-            else offlineList.push({name, raw:p});
+            if(on) online.push({name, raw:p});
+            else offline.push({name, raw:p});
           }
-
+          // ensure local user appears
           if(username){
-            const existsOnline = onlineList.some(x=>x.name===username);
-            const existsOffline = offlineList.some(x=>x.name===username);
-            if(!existsOnline && !existsOffline){
-              onlineList.unshift({name: username, raw:{name:username, lastSeen: new Date().toISOString(), online:true}, local:true});
-            }
+            const existsOnline = online.some(x=>x.name===username);
+            const existsOffline = offline.some(x=>x.name===username);
+            if(!existsOnline && !existsOffline) online.unshift({name:username, raw:{name:username,lastSeen:new Date().toISOString()}, local:true});
           }
 
           playersListEl.innerHTML = '';
-          const headerOnline = document.createElement('div'); headerOnline.style.fontSize='13px'; headerOnline.style.color='var(--muted)'; headerOnline.textContent = 'Online ('+onlineList.length+')';
+          const headerOnline = document.createElement('div'); headerOnline.style.color='var(--muted)'; headerOnline.style.fontSize='13px'; headerOnline.textContent = 'Online ('+online.length+')';
           playersListEl.appendChild(headerOnline);
-          for(const p of onlineList){
-            const item = document.createElement('div');
-            item.className = 'player online' + (p.local ? ' you' : '');
-            const displayName = escapeHtml(p.name);
-            const youLabel = p.local ? ' <span style="margin-left:6px;font-size:12px;color:var(--muted)">(you)</span>' : '';
-            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot"></span><span class="playerName" style="font-weight:600">${displayName}</span>${youLabel}</div><div style="font-size:12px;color:var(--muted)">online</div>`;
-            const nameSpan = item.querySelector('.playerName');
-            if(p.raw && (p.raw.nameColor || p.raw.color)) nameSpan.style.color = p.raw.nameColor || p.raw.color;
-            else if(p.local) nameSpan.style.color = nameColor;
+          for(const p of online){
+            const item = document.createElement('div'); item.className='player online'; if(p.local) item.classList.add('you');
+            const display = escapeHtml(p.name) + (p.local ? ' <span style="font-size:12px;color:var(--muted)">(you)</span>' : '');
+            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot"></span><div style="font-weight:600">${display}</div></div><div style="font-size:12px;color:var(--muted)">online</div>`;
             playersListEl.appendChild(item);
           }
-
-          const sep = document.createElement('div'); sep.style.height='8px'; playersListEl.appendChild(sep);
-
-          const headerOff = document.createElement('div'); headerOff.style.fontSize='13px'; headerOff.style.color='var(--muted)'; headerOff.textContent = 'Offline ('+offlineList.length+')';
+          playersListEl.appendChild(document.createElement('div')).style.height = '8px';
+          const headerOff = document.createElement('div'); headerOff.style.color='var(--muted)'; headerOff.style.fontSize='13px'; headerOff.textContent = 'Offline ('+offline.length+')';
           playersListEl.appendChild(headerOff);
-          for(const p of offlineList){
-            const item = document.createElement('div');
-            item.className = 'player offline';
-            const displayName = escapeHtml(p.name);
-            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot"></span><span class="playerName" style="font-weight:600">${displayName}</span></div><div style="font-size:12px;color:var(--muted)">offline</div>`;
-            const nameSpan = item.querySelector('.playerName');
-            if(p.raw && (p.raw.nameColor || p.raw.color)) nameSpan.style.color = p.raw.nameColor || p.raw.color;
+          for(const p of offline){
+            const item = document.createElement('div'); item.className='player offline';
+            item.innerHTML = `<div style="display:flex;align-items:center"><span class="statusDot"></span><div style="font-weight:600">${escapeHtml(p.name)}</div></div><div style="font-size:12px;color:var(--muted)">offline</div>`;
             playersListEl.appendChild(item);
           }
-
-          playersStatusEl.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
-        }catch(err){
-          console.error(err);
-          playersStatusEl.textContent = 'Error loading players';
-          playersListEl.innerHTML = '';
-        }
+          playersStatusEl.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+        }catch(e){ console.error(e); playersStatusEl.textContent='Error loading players'; playersListEl.innerHTML=''; }
       }
 
-      // Upsert local player (sets lastSeen online)
+      // upsert local player record (create or update lastSeen)
       async function upsertLocalPlayer(){
         if(!username) return;
         try{
@@ -716,81 +625,42 @@
           const data = await res.json();
           if(!Array.isArray(data)) return;
           const found = data.find(p => normalizePlayerName(p) === username);
-          const nowISOString = new Date().toISOString();
+          const now = new Date().toISOString();
           if(found){
             localPlayerId = found.id;
             localStorage.setItem('notcord_playerId', localPlayerId);
-            await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', {...found, name: username, online:true, lastSeen: nowISOString, nameColor});
+            await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', {...found, name: username, lastSeen: now});
           } else {
-            const created = await safeFetch(PLAYERS_API, 'POST', { name: username, online:true, lastSeen: nowISOString, nameColor });
+            const created = await safeFetch(PLAYERS_API, 'POST', { name: username, lastSeen: now });
             if(created && created.id){ localPlayerId = created.id; localStorage.setItem('notcord_playerId', localPlayerId); }
           }
-        }catch(e){ console.warn('upsertLocalPlayer error', e); } finally { fetchPlayers().catch(()=>{}); }
+        }catch(e){ console.warn('upsertLocalPlayer', e);} finally{ fetchPlayers().catch(()=>{}); }
       }
 
+      // set online/offline state (best-effort via sendBeacon on unload)
       async function setLocalPlayerOnlineState(isOnline){
         if(!localPlayerId) return;
         try{
           const cur = await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'GET', null);
           if(!cur) return;
-          const updated = { ...cur, online: !!isOnline, name: username || cur.name, lastSeen: new Date().toISOString() };
-          if(nameColor) updated.nameColor = nameColor;
+          const updated = { ...cur, online: !!isOnline, lastSeen: new Date().toISOString(), name: username || cur.name };
           await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', updated);
-        }catch(e){ console.warn('setLocalPlayerOnlineState', e); } finally { fetchPlayers().catch(()=>{}); }
+        }catch(e){ console.warn('setLocalPlayerOnlineState', e); } finally{ fetchPlayers().catch(()=>{}); }
       }
 
-      // Heartbeat for online status
+      // heartbeat
       function startHeartbeat(){
         stopHeartbeat();
         if(!username || !localPlayerId) return;
-        heartbeatInterval = setInterval(async () => {
+        heartbeatInterval = setInterval(async ()=>{
           try{
-            const payload = { lastSeen: new Date().toISOString(), online: true, name: username, nameColor };
-            await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', payload);
-          }catch(e){ console.warn('heartbeat failed', e); }
+            await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', { lastSeen: new Date().toISOString(), name: username });
+          }catch(e){ console.warn('heartbeat', e); }
         }, HEARTBEAT_MS);
       }
-      function stopHeartbeat(){ if(heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; } }
+      function stopHeartbeat(){ if(heartbeatInterval){ clearInterval(heartbeatInterval); heartbeatInterval = null; } }
 
-      // Typing indicator (localStorage)
-      function readTypingMap(){ try{ return JSON.parse(localStorage.getItem(TYPING_KEY)||'{}'); }catch(e){ return {}; } }
-      function writeTypingMap(m){ try{ localStorage.setItem(TYPING_KEY, JSON.stringify(m)); }catch(e){} }
-      function setLocalTyping(active){
-        if(!username) return;
-        const map = readTypingMap();
-        map[activeChannel] = map[activeChannel] || {};
-        if(active) map[activeChannel][username] = Date.now();
-        else if(map[activeChannel]) delete map[activeChannel][username];
-        writeTypingMap(map);
-        updateTypingUI();
-      }
-      function cleanupTypingMap(){
-        const map = readTypingMap();
-        const now = Date.now();
-        let changed = false;
-        for(const ch of Object.keys(map)){
-          for(const u of Object.keys(map[ch])){
-            const ts = Number(map[ch][u]||0);
-            if(now - ts > TYPING_EXPIRE_MS){ delete map[ch][u]; changed = true; }
-          }
-          if(Object.keys(map[ch]).length === 0) delete map[ch];
-        }
-        if(changed) writeTypingMap(map);
-        updateTypingUI();
-      }
-      function updateTypingUI(){
-        const map = readTypingMap();
-        const channelMap = map[activeChannel] || {};
-        const now = Date.now();
-        const typers = Object.keys(channelMap).filter(u => u !== username && (now - Number(channelMap[u]||0) <= TYPING_EXPIRE_MS));
-        if(typers.length === 0) typingIndicatorEl.textContent = '';
-        else if(typers.length === 1) typingIndicatorEl.textContent = typers[0] + ' is typing...';
-        else if(typers.length === 2) typingIndicatorEl.textContent = typers[0] + ' and ' + typers[1] + ' are typing...';
-        else typingIndicatorEl.textContent = typers[0] + ' and ' + (typers.length-1) + ' others are typing...';
-      }
-      window.addEventListener('storage', (e)=> { if(e.key === TYPING_KEY) updateTypingUI(); });
-
-      // Input and controls
+      // input state update
       function updateCharCountAndState(){
         let val = messageInput.value || '';
         if(val.length > MAX_CHARS) messageInput.value = val.slice(0, MAX_CHARS);
@@ -798,13 +668,26 @@
         const canSend = username && (messageInput.value||'').trim().length > 0 && activeChannel !== 'announcements' && activeChannel !== 'photos' && !isSending && !isUserMuted(username);
         sendBtn.disabled = !canSend;
       }
-      function scheduleTypingStop(){
-        if(typingStopTimeout) clearTimeout(typingStopTimeout);
-        typingStopTimeout = setTimeout(()=> { setLocalTyping(false); isLocalTyping = false; }, 1500);
+
+      // show/hide inputs per channel
+      function updateInputArea(){
+        if(activeChannel === 'photos'){
+          inputWrapper.style.display = 'none';
+          photoUploadWrapper.style.display = 'flex';
+          uploadPhotoBtn.disabled = true;
+        } else {
+          photoUploadWrapper.style.display = 'none';
+          inputWrapper.style.display = 'flex';
+        }
+        if(activeChannel === 'announcements'){
+          messageInput.disabled = true;
+          sendBtn.disabled = true;
+        } else {
+          messageInput.disabled = false;
+        }
       }
 
-      messagesEl.addEventListener('scroll', () => { autoScroll = isAtBottom(); });
-
+      // event bindings
       channelsEl.addEventListener('click', (e)=>{
         const ch = e.target.closest('.channel');
         if(!ch) return;
@@ -813,7 +696,7 @@
 
       setNameBtn.addEventListener('click', async ()=>{
         let val = usernameInput.value.trim();
-        if(!val) val = 'Guest' + Math.floor(Math.random()*9000 + 1000);
+        if(!val) val = 'Guest' + Math.floor(Math.random()*9000+1000);
         username = val;
         localStorage.setItem('notcord_username', username);
         usernameBox.style.display = 'none';
@@ -828,53 +711,49 @@
 
       sendBtn.addEventListener('click', ()=>{
         const txt = messageInput.value;
-        if(!txt || !txt.trim()) return;
-        if(isUserMuted(username)){
-          const remain = Math.ceil((muteMap.get(username)-Date.now())/1000);
-          setStatus(`You are muted for bad language. Remaining: ${remain} seconds`);
-          return;
-        }
-        if(checkAndMuteUser(username, txt).muted){
-          setStatus('Message contains forbidden words. You are muted for 2 minutes.');
-          return;
-        }
         postMessage(txt);
         messageInput.value = '';
         updateCharCountAndState();
-        setLocalTyping(false);
+        // clear typing
+        const map = readTypingMap(); if(map[activeChannel] && map[activeChannel][username]){ delete map[activeChannel][username]; writeTypingMap(map); updateTypingUI(); }
       });
 
       messageInput.addEventListener('input', ()=>{
         updateCharCountAndState();
-        if(!isLocalTyping){ setLocalTyping(true); isLocalTyping = true; }
-        scheduleTypingStop();
+        // typing indicator
+        if(username){
+          const map = readTypingMap();
+          map[activeChannel] = map[activeChannel] || {};
+          map[activeChannel][username] = Date.now();
+          writeTypingMap(map);
+          updateTypingUI();
+        }
       });
 
       messageInput.addEventListener('keydown', (e)=>{
         if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); if(!sendBtn.disabled) sendBtn.click(); }
       });
 
-      nameColorInput.addEventListener('input', async (e)=>{
-        nameColor = e.target.value;
-        localStorage.setItem('notcord_nameColor', nameColor);
-        if(localPlayerId){
-          const cur = await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'GET', null);
-          if(cur) await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', {...cur, nameColor, lastSeen: new Date().toISOString(), online:true});
-        }
-        Array.from(document.querySelectorAll('.meta .name')).forEach(el => { if(el.textContent === username) el.style.color = nameColor; });
-        fetchPlayers().catch(()=>{});
+      photoInput.addEventListener('change', ()=> {
+        uploadPhotoBtn.disabled = !photoInput.files.length;
       });
-      resetNameColorBtn.addEventListener('click', ()=>{ nameColor = '#ffcc00'; nameColorInput.value = nameColor; localStorage.setItem('notcord_nameColor', nameColor); });
+
+      uploadPhotoBtn.addEventListener('click', async ()=>{
+        if(photoInput.files.length) uploadPhoto(photoInput.files[0]);
+      });
+
+      // appearance inputs
+      nameColorInput.addEventListener('input', async (e)=>{ nameColor = e.target.value; localStorage.setItem('notcord_nameColor', nameColor); if(localPlayerId) await safeFetch(`${PLAYERS_API}/${localPlayerId}`, 'PUT', { name: username, lastSeen: new Date().toISOString(), nameColor }); Array.from(document.querySelectorAll('.meta .name')).forEach(el=>{ if(el.textContent===username) el.style.color = nameColor; }); });
+      resetNameColorBtn.addEventListener('click', ()=>{ nameColor='#ffcc00'; nameColorInput.value = nameColor; localStorage.setItem('notcord_nameColor', nameColor); });
 
       themeColor1Input.addEventListener('input', (e)=>{ themeColor1 = e.target.value; localStorage.setItem('notcord_theme1', themeColor1); accentColor = themeColor1; localStorage.setItem('notcord_accent', accentColor); applyTheme(); });
-      resetTheme1Btn.addEventListener('click', ()=>{ themeColor1 = '#071226'; themeColor1Input.value = themeColor1; localStorage.setItem('notcord_theme1', themeColor1); applyTheme(); });
+      resetTheme1Btn.addEventListener('click', ()=>{ themeColor1='#071226'; themeColor1Input.value = themeColor1; localStorage.setItem('notcord_theme1', themeColor1); applyTheme(); });
       themeColor2Input.addEventListener('input', (e)=>{ themeColor2 = e.target.value; localStorage.setItem('notcord_theme2', themeColor2); applyTheme(); });
-      resetTheme2Btn.addEventListener('click', ()=>{ themeColor2 = '#07101a'; themeColor2Input.value = themeColor2; localStorage.setItem('notcord_theme2', themeColor2); applyTheme(); });
-
+      resetTheme2Btn.addEventListener('click', ()=>{ themeColor2='#07101a'; themeColor2Input.value = themeColor2; localStorage.setItem('notcord_theme2', themeColor2); applyTheme(); });
       themeColor3Input.addEventListener('input', (e)=>{ themeColor3 = e.target.value; localStorage.setItem('notcord_theme3', themeColor3); applyTheme(); });
-      resetTheme3Btn.addEventListener('click', ()=>{ themeColor3 = '#0b2233'; themeColor3Input.value = themeColor3; localStorage.setItem('notcord_theme3', themeColor3); applyTheme(); });
+      resetTheme3Btn.addEventListener('click', ()=>{ themeColor3='#0b2233'; themeColor3Input.value = themeColor3; localStorage.setItem('notcord_theme3', themeColor3); applyTheme(); });
 
-      // Channel switch updates UI input areas and fetches messages
+      // set channel active and reload
       async function setActiveChannel(id){
         activeChannel = id;
         apiBase = CHANNELS[id] || null;
@@ -887,90 +766,25 @@
         if(id !== 'announcements') polling = setInterval(fetchMessages, 4000);
       }
 
-      // Photo upload logic
-      photoInput.addEventListener('change', () => {
-        uploadPhotoBtn.disabled = !photoInput.files.length;
-      });
-
-      uploadPhotoBtn.addEventListener('click', async () => {
-        if(!photoInput.files.length) return;
-        if(isUserMuted(username)){
-          setStatus('You are muted and cannot upload photos.');
-          return;
-        }
-        const file = photoInput.files[0];
-        if(checkAndMuteUser(username, file.name).muted){
-          setStatus('File name contains forbidden words. You are muted for 2 minutes.');
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-          const base64Data = e.target.result;
-          const payload = {
-            username,
-            createdAt: new Date().toISOString(),
-            nameColor,
-            imageUrl: base64Data,
-            message: ''
-          };
-          isSending = true;
-          uploadPhotoBtn.disabled = true;
-          try {
-            const res = await fetch(CHANNELS.photos, {
-              method: 'POST',
-              headers: {'Content-Type':'application/json'},
-              body: JSON.stringify(payload)
-            });
-            if(!res.ok) throw new Error('Upload failed: ' + res.status);
-            setStatus('Photo uploaded successfully');
-            photoInput.value = '';
-            uploadPhotoBtn.disabled = true;
-            await fetchMessages();
-          } catch(e) {
-            console.error(e);
-            setStatus('Failed to upload photo');
-          } finally {
-            isSending = false;
-            uploadPhotoBtn.disabled = false;
+      // cleanup typing map (expire stale typers)
+      function cleanupTypingMap(){
+        const map = readTypingMap();
+        const now = Date.now();
+        let changed = false;
+        for(const ch of Object.keys(map)){
+          for(const u of Object.keys(map[ch])){
+            if(now - map[ch][u] > TYPING_EXPIRE_MS){ delete map[ch][u]; changed = true; }
           }
-        };
-        reader.readAsDataURL(file);
-      });
-
-      // Anti-cheat: check message text for bad words (simple contains, case insensitive)
-      function containsBadWords(text) {
-        if (!text) return false;
-        const lowered = text.toLowerCase();
-        return BAD_WORDS.some(word => lowered.includes(word));
-      }
-
-      // Check and mute user if they use bad words
-      function checkAndMuteUser(user, text) {
-        if(isUserMuted(user)) return { muted: true, remaining: Math.ceil((muteMap.get(user)-Date.now())/1000) };
-        if(containsBadWords(text)) {
-          muteMap.set(user, Date.now() + 2*60*1000);
-          return { muted: true, remaining: 120 };
+          if(Object.keys(map[ch]).length===0) delete map[ch];
         }
-        return { muted: false };
+        if(changed) writeTypingMap(map);
+        updateTypingUI();
       }
 
-      // User mute status
-      function isUserMuted(user) {
-        const muteExpire = muteMap.get(user);
-        if (!muteExpire) return false;
-        if (Date.now() > muteExpire) {
-          muteMap.delete(user);
-          return false;
-        }
-        return true;
-      }
-
-      // Initialization
+      // initialization
       async function init(){
         applyTheme();
         initializeAppearanceInputs();
-
         if(username){
           usernameBox.style.display = 'none';
           usernameLocked.style.display = 'flex';
@@ -982,24 +796,53 @@
           usernameBox.style.display = 'flex';
           usernameLocked.style.display = 'none';
         }
-
         await setActiveChannel(activeChannel);
         await fetchPlayers();
         if(playersPolling) clearInterval(playersPolling);
         playersPolling = setInterval(fetchPlayers, 5000);
-
-        setInterval(() => { if(apiBase) enforceMessageLimit(); }, 60 * 1000);
         setInterval(cleanupTypingMap, 2000);
-        updateTypingUI();
+        setStatus('Connected (polling every 4s)');
       }
-
-      // The rest of your existing code for players, online detection, typing indicator, etc. remains unchanged.
-
-      // Call init on page load
       init();
 
-      // Your existing beforeunload and visibility handlers remain unchanged.
+      // visibility & unload handlers to mark offline
+      document.addEventListener('visibilitychange', async ()=>{
+        if(!username) return;
+        if(document.hidden){
+          try{
+            if(localPlayerId && navigator.sendBeacon){
+              const url = `${PLAYERS_API}/${localPlayerId}`;
+              const payload = JSON.stringify({ lastSeen: new Date().toISOString(), online:false, name: username });
+              const blob = new Blob([payload], { type: 'application/json' });
+              navigator.sendBeacon(url, blob);
+            } else {
+              await setLocalPlayerOnlineState(false);
+            }
+          }catch(e){}
+          stopHeartbeat();
+        } else {
+          await upsertLocalPlayer();
+          startHeartbeat();
+        }
+      });
 
+      window.addEventListener('beforeunload', ()=>{
+        try{
+          if(localPlayerId){
+            const url = `${PLAYERS_API}/${localPlayerId}`;
+            const payload = JSON.stringify({ lastSeen: new Date().toISOString(), online:false, name: username });
+            if(navigator.sendBeacon){
+              const blob = new Blob([payload], { type: 'application/json' });
+              navigator.sendBeacon(url, blob);
+            } else {
+              fetch(url, { method:'PUT', headers:{'Content-Type':'application/json'}, body: payload }).catch(()=>{});
+            }
+          }
+        }catch(e){}
+      });
+
+      // expose some functions for debugging (optional)
+      window._notcord = { muteMap, spamState, fetchMessages, fetchPlayers };
     })();
   </script>
 </body>
