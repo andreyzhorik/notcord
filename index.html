@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>notcord — multi-channel (with photos, anti-cheat & anti-spam)</title>
+  <title>notcord</title>
   <style>
     :root{
       --theme-1: #071226;
@@ -199,7 +199,7 @@
 
       // Bad words (examples). Expand list as needed.
       const BAD_WORDS = [
-        'badword1','badword2','badword3',
+        'fuck','bicth','nigger',
         'плохоеcлово1','плохоеcлово2','плохоеcлово3'
       ];
 
@@ -414,8 +414,7 @@
       async function fetchMessages(){
         if(activeChannel === 'announcements'){
           const notes = [
-            { username:'NOTCORD', message:'Welcome to NOTCORD!', createdAt:new Date().toISOString() },
-            { username:'NOTCORD', message:'Maintenance: Sunday 02:00 UTC.', createdAt:new Date(Date.now()-3600*1000*6).toISOString() }
+            { username:'NOTCORD', message:'Welcome to NOTCORD!', createdAt:new Date().toISOString() }
           ];
           messagesEl.innerHTML = '';
           for(const m of notes){ const el = renderMessage(m, username); if(el) messagesEl.appendChild(el); }
