@@ -200,7 +200,7 @@
       const PLAYERS_API = 'https://68e839b2f2707e6128ca35e1.mockapi.io/players';
 
       // minimal bad words examples
-      const BAD_WORDS = ['badword1','плохоеcлово1'];
+      const BAD_WORDS = ['fuck','bitch','nigger','плохоеcлово1'];
 
       // UI refs
       const channelsEl = document.getElementById('channels');
@@ -341,8 +341,7 @@
       async function fetchMessages(){
         if(activeChannel === 'announcements'){
           const notes = [
-            { username:'NOTCORD', message:'Welcome!', createdAt:new Date().toISOString(), nameColor:'#ff7a18' },
-            { username:'NOTCORD', message:'Maintenance: Sunday 02:00 UTC.', createdAt:new Date(Date.now()-3600*1000*6).toISOString(), nameColor:'#18a0ff' }
+            { username:'NOTCORD', message:'Welcome!', createdAt:new Date().toISOString(), nameColor:'#ff7a18' }
           ];
           messagesEl.innerHTML = '';
           for(const m of notes){ const el = renderMessage(m, username); if(el) messagesEl.appendChild(el); }
